@@ -1,0 +1,6 @@
+@StuMoov_HostAddress = http://localhost:5004
+
+GET {{StuMoov_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
