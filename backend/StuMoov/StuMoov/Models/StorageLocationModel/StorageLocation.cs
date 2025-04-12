@@ -1,22 +1,31 @@
-﻿namespace StuMoov.Models.StorageLocationModel;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace StuMoov.Models.StorageLocationModel;
 public class StorageLocation
 {
-    public string Id { get; private set; } // Unique identifier for the storage location, managed by the database
-    public string UserId { get; private set; } // Identifier for the user who owns or manages the storage location
-
+    public Guid Id { get; private set; } // Unique identifier for the storage location, managed by the database
+    [Required]
+    public Guid UserId { get; private set; } // Identifier for the user who owns or manages the storage location
     // Public properties with private setters to ensure data integrity
-    public string Name { get; private set; }  // Name of the storage location
-    public string Description { get; private set; } // Description of the storage location
-    public double Lat { get; private set; } // Latitude coordinate
-    public double Lng { get; private set; } // Longitude coordinate
+    [Required]
+    public string Name { get; set; }  // Name of the storage location
+    public string Description { get; set; } // Description of the storage location
+    [Required]
+    public double Lat { get; set; } // Latitude coordinate
+    [Required]
+    public double Lng { get; set; } // Longitude coordinate
+    [Required]
     public double StorageLength { get; private set; } // Length of the storage space
+    [Required]
     public double StorageWidth { get; private set; } // Width of the storage space
+    [Required]
     public double StorageHeight { get; private set; } // Height of the storage space
     public double StorageVolumeTotal { get; private set; } // Total storage volume capacity
+    [Required]
     public double Price { get; private set; } // Remaining available volume in storage
 
     // Constructor to initialize a StorageLocation instance
-    public StorageLocation(string userId,
+    public StorageLocation(Guid userId,
                            string name,
                            string description,
                            double lat,
@@ -27,7 +36,7 @@ public class StorageLocation
                            double storageVolumeTotal,
                            double price)
     {
-        Id = string.Empty;  // ID is expected to be assigned by the database system
+        Id = Guid.NewGuid();  // ID is expected to be assigned by the database system
         UserId = userId; // userId is also assigned by the database system
         Name = name;
         Description = description;

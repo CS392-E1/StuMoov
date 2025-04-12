@@ -29,7 +29,7 @@ namespace StuMoov.Controllers
 
         // GET: api/StorageLocation/{id}
         [HttpGet("{id}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationById(string id)
+        public ActionResult<StorageLocationResponse> GetStorageLocationById(Guid id)
         {
             StorageLocationResponse response = _storageLocationService.GetLocationById(id);
             return StatusCode(response.Status, response);
@@ -37,7 +37,7 @@ namespace StuMoov.Controllers
 
         // GET: api/StorageLocation/user/{userId}
         [HttpGet("user/{userId}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationsByUserId(string userId)
+        public ActionResult<StorageLocationResponse> GetStorageLocationsByUserId(Guid userId)
         {
             StorageLocationResponse response = _storageLocationService.GetLocationsByUserId(userId);
             return StatusCode(response.Status, response);
@@ -58,7 +58,7 @@ namespace StuMoov.Controllers
 
         // PUT: api/StorageLocation/{id}
         [HttpPut("{id}")]
-        public ActionResult<StorageLocationResponse> UpdateStorageLocation(string id, [FromBody] StorageLocation storageLocation)
+        public ActionResult<StorageLocationResponse> UpdateStorageLocation(Guid id, [FromBody] StorageLocation storageLocation)
         {
             if (!ModelState.IsValid)
             {
@@ -71,7 +71,7 @@ namespace StuMoov.Controllers
 
         // DELETE: api/StorageLocation/{id}
         [HttpDelete("{id}")]
-        public ActionResult<StorageLocationResponse> DeleteStorageLocation(string id)
+        public ActionResult<StorageLocationResponse> DeleteStorageLocation(Guid id)
         {
             StorageLocationResponse response = _storageLocationService.DeleteLocation(id);
             return StatusCode(response.Status, response);
@@ -125,7 +125,7 @@ namespace StuMoov.Controllers
 
         // HEAD: api/StorageLocation/{id}
         [HttpHead("{id}")]
-        public IActionResult CheckLocationExists(string id)
+        public IActionResult CheckLocationExists(Guid id)
         {
             bool exists = _storageLocationService.LocationExists(id);
             return exists ? Ok() : NotFound();

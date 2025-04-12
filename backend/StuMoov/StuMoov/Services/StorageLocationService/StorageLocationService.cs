@@ -25,7 +25,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve a storage location by its ID
-        public StorageLocationResponse GetLocationById(string id)
+        public StorageLocationResponse GetLocationById(Guid id)
         {
             // Fetch the storage location from the DAO
             StorageLocation? location = this._storageLocationDao.GetById(id);
@@ -48,7 +48,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve storage locations by user ID
-        public StorageLocationResponse GetLocationsByUserId(string userId)
+        public StorageLocationResponse GetLocationsByUserId(Guid userId)
         {
             // Fetch locations by user ID from the DAO
             List<StorageLocation>? locations = this._storageLocationDao.GetByUserId(userId);
@@ -80,7 +80,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Create the storage location using the DAO
-            string id = this._storageLocationDao.Create(storageLocation);
+            Guid id = this._storageLocationDao.Create(storageLocation);
 
             // Return success response with the created location
             StorageLocation? createdLocation = this._storageLocationDao.GetById(id);
@@ -92,7 +92,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to update an existing storage location
-        public StorageLocationResponse UpdateLocation(string id, StorageLocation updatedStorageLocation)
+        public StorageLocationResponse UpdateLocation(Guid id, StorageLocation updatedStorageLocation)
         {
             // Validate input
             if (updatedStorageLocation == null)
@@ -136,7 +136,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to delete a storage location
-        public StorageLocationResponse DeleteLocation(string id)
+        public StorageLocationResponse DeleteLocation(Guid id)
         {
             // Check if location exists
             if (!this._storageLocationDao.Exists(id))
@@ -276,7 +276,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to check if a storage location exists by ID
-        public bool LocationExists(string id)
+        public bool LocationExists(Guid id)
         {
             return this._storageLocationDao.Exists(id);
         }

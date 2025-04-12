@@ -3,17 +3,17 @@ using StuMoov.Models.StorageLocationModel;
 
 public class StorageLocationDao
 {
-    private Dictionary<string, StorageLocation> storageLocations;
+    private Dictionary<Guid, StorageLocation> storageLocations;
 
     // Constructor to initialize the database reference with a map
     public StorageLocationDao()
     {
         // Initialize the dictionary
-        storageLocations = new Dictionary<string, StorageLocation>();
+        storageLocations = new Dictionary<Guid, StorageLocation>();
 
         // Add some initial mock data
         StorageLocation locationA = new StorageLocation(
-            "userId1",
+            Guid.NewGuid(),
             "Storage A",
             "A small storage location",
             -33.860664,
@@ -26,7 +26,7 @@ public class StorageLocationDao
         );
 
         StorageLocation locationB = new StorageLocation(
-            "userId2",
+            Guid.NewGuid(),
             "Storage B",
             "A medium storage location",
             -33.87664,
@@ -39,7 +39,7 @@ public class StorageLocationDao
         );
 
         StorageLocation locationC = new StorageLocation(
-            "userId2",
+            Guid.NewGuid(),
             "Storage C",
             "A large storage location",
             -33.870664,
@@ -52,9 +52,9 @@ public class StorageLocationDao
         );
 
         // Using GUIDs as keys for the dictionary
-        storageLocations.Add("1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p", locationA);
-        storageLocations.Add("2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q", locationB);
-        storageLocations.Add("3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r", locationC);
+        storageLocations.Add(Guid.NewGuid(), locationA);
+        storageLocations.Add(Guid.NewGuid(), locationB);
+        storageLocations.Add(Guid.NewGuid(), locationC);
 
     }
 
@@ -65,9 +65,9 @@ public class StorageLocationDao
     }
 
     // Get a specific storage location by ID
-    public StorageLocation? GetById(string id)
+    public StorageLocation? GetById(Guid id)
     {
-        if (storageLocations.TryGetValue(id, out StorageLocation? location))
+        if (storageLocations.TryGetValue(id, out var location))
         {
             return location;
         }
@@ -75,7 +75,7 @@ public class StorageLocationDao
     }
 
     // Get storage locations by lender's user ID
-    public List<StorageLocation>? GetByUserId(string userId)
+    public List<StorageLocation>? GetByUserId(Guid userId)
     {
         return storageLocations.Values
             .Where(loc => loc.UserId == userId)
@@ -83,10 +83,10 @@ public class StorageLocationDao
     }
 
     // Create a new storage location
-    public string Create(StorageLocation storageLocation)
+    public Guid Create(StorageLocation storageLocation)
     {
         // Generate a new GUID for the location
-        string id = Guid.NewGuid().ToString();
+        Guid id = Guid.NewGuid();
 
         // Add to the dictionary
         storageLocations.Add(id, storageLocation);
@@ -95,7 +95,7 @@ public class StorageLocationDao
     }
 
     // Update an existing storage location
-    public bool Update(string id, StorageLocation updatedStorageLocation)
+    public bool Update(Guid id, StorageLocation updatedStorageLocation)
     {
         if (!storageLocations.ContainsKey(id))
         {
@@ -107,7 +107,7 @@ public class StorageLocationDao
     }
 
     // Delete a storage location by ID
-    public bool Delete(string id)
+    public bool Delete(Guid id)
     {
         return storageLocations.Remove(id);
     }
@@ -193,7 +193,7 @@ public class StorageLocationDao
     }
 
     // Check if a storage location exists by ID
-    public bool Exists(string id)
+    public bool Exists(Guid id)
     {
         return storageLocations.ContainsKey(id);
     }
