@@ -1,12 +1,23 @@
+import './firebase';
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
+import React from 'react';
+import './App.tsx';
+import './firebase';
+import LoginForm from './components/loginform';
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
+    
     <>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <h1 className="text-2xl font-bold mb-4">My Group Project App</h1>
+      <LoginForm />
+    </div>
+
       <div className="flex justify-center items-center gap-8 p-4">
         <a href="https://vite.dev" target="_blank" className="hover:opacity-80 transition-opacity">
           <img src={viteLogo} className="h-24 w-24" alt="Vite logo" />
