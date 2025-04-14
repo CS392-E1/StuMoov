@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using StuMoov.Models.UserModel.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace StuMoov.Models.UserModel
 {

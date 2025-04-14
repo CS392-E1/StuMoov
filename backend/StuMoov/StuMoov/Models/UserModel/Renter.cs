@@ -1,5 +1,6 @@
 ﻿using StuMoov.Models.BookingModel;
 using StuMoov.Models.ChatModel;
+using StuMoov.Models.UserModel.Enums;
 
 namespace StuMoov.Models.UserModel
 {
@@ -8,6 +9,9 @@ namespace StuMoov.Models.UserModel
         private Dictionary<Guid, Booking>? RentalBookings { get; set; }
         //private Dictionary<Guid, PaymentInfo>? PaymentInfos { get; set; };  //Need to design PaymentInfo Class
         private Dictionary<Guid, ChatSession> ChatSessions { get; set; }
+
+        public StripeCustomer? StripeCustomerInfo { get; private set; } // Stripe customer info for payment processing
+
 
         public Renter(Guid id, string username, string email, string passwordHash) : base(id, username, email, passwordHash)
         {

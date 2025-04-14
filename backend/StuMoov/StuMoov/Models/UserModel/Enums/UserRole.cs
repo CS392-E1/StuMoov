@@ -1,4 +1,4 @@
-﻿namespace StuMoov.Models.UserModel
+﻿namespace StuMoov.Models.UserModel.Enums
 {
     public enum UserRole
     {
