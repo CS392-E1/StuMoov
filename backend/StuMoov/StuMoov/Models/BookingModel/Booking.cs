@@ -5,6 +5,8 @@ public class Booking
 {
     public Guid Id { get; private set; }
     [Required]
+    public Guid PaymentId { get; private set; }
+    [Required]
     public Guid RenterId { get; private set; }
     [Required]
     public Guid StorageLocationId { get; private set; }
