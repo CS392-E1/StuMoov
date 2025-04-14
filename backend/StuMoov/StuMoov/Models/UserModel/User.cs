@@ -6,6 +6,8 @@ namespace StuMoov.Models.UserModel
     {
         public Guid Id { get; protected set; }
         [Required]
+        public string FirebaseUid { get; protected set; }
+        [Required]
         public string Username { get; protected set; }
         [Required]
         public string Email { get; protected set; }
