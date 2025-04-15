@@ -7,10 +7,10 @@ public class StorageLocationResponse
 
     public string Message { get; set; } // Message providing additional details about the response
 
-    public object Data { get; set; } // Payload containing the actual response data (e.g., list of storage locations)
+    public object? Data { get; set; } // Payload containing the actual response data (e.g., list of storage locations)
 
     // Constructor to initialize response properties
-    public StorageLocationResponse(int status, string message, object data)
+    public StorageLocationResponse(int status, string message, object? data)
     {
         Status = status;
         Message = message;
