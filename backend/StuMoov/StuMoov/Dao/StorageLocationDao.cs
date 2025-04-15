@@ -52,9 +52,9 @@ public class StorageLocationDao
         );
 
         // Using GUIDs as keys for the dictionary
-        storageLocations.Add(Guid.NewGuid(), locationA);
-        storageLocations.Add(Guid.NewGuid(), locationB);
-        storageLocations.Add(Guid.NewGuid(), locationC);
+        storageLocations.Add(locationA.Id, locationA);
+        storageLocations.Add(locationB.Id, locationB);
+        storageLocations.Add(locationC.Id, locationC);
 
     }
 

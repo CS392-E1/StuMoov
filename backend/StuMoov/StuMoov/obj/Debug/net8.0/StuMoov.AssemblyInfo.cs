@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("StuMoov")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+397f7bbac23a7677556cd0042fc35b6d465227a3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5993f8a2bddcd47e5e50bd4b5660099f77c0d8de")]
 [assembly: System.Reflection.AssemblyProductAttribute("StuMoov")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StuMoov")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
