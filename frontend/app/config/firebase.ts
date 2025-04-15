@@ -1,8 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+// import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -15,12 +15,12 @@ const firebaseConfig = {
   storageBucket: "stumoov-eb219.firebasestorage.app",
   messagingSenderId: "662076919979",
   appId: "1:662076919979:web:1a671ceea314371eaca7ee",
-  measurementId: "G-9V3MYJ2YJR"
+  measurementId: "G-9V3MYJ2YJR",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// const analytics = getAnalytics(app);  This crashes react router for some reason
 
 console.log("Firebase Initialized", app);
 

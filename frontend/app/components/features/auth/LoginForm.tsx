@@ -1,35 +1,35 @@
-import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import React, { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      alert('Logged in successfully!');
+      alert("Logged in successfully!");
     } catch (error) {
       console.error(error);
-      alert('Login failed!');
+      alert("Login failed!");
     }
   };
 
   return (
     <form onSubmit={handleLogin} className="flex flex-col gap-2">
-      <input 
-        type="email" 
-        value={email} 
-        onChange={(e) => setEmail(e.target.value)} 
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
         className="border p-2 rounded"
       />
-      <input 
-        type="password" 
-        value={password} 
-        onChange={(e) => setPassword(e.target.value)} 
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
         className="border p-2 rounded"
       />

@@ -119,4 +119,8 @@ appsettings.local.json
 *.swp
 *~
 
+# Environment variables
+.env
 
+# React Router
+.react-router/
