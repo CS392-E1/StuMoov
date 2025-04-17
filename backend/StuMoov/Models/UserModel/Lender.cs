@@ -23,7 +23,7 @@ namespace StuMoov.Models.UserModel
             Id = id;
             DisplayName = displayName;
             Email = email;
-            Role = UserRole.RENTER;
+            Role = UserRole.LENDER;
             CreatedAt = DateTime.UtcNow;
             // RentalBookings = new Dictionary<Guid, Booking>();
             //PaymentInfos = new Dictionaty<Guid, PaymentInfo>();
