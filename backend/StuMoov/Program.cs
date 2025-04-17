@@ -1,20 +1,27 @@
+using Microsoft.EntityFrameworkCore;
 using StuMoov.Dao;
+using StuMoov.Db;
 
 var builder = WebApplication.CreateBuilder(args);
 var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
 
-var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
-var key = Environment.GetEnvironmentVariable("SUPABASE_KEY");
+var url = builder.Configuration["Supabase:SUPABASE_URL"];
+var key = builder.Configuration["Supabase:SUPABASE_KEY"];
 
 var options = new Supabase.SupabaseOptions
 {
     AutoConnectRealtime = true
 };
 
-#pragma warning disable CS8604 // Possible null reference argument.
 var supabase = new Supabase.Client(url, key, options);
-#pragma warning restore CS8604 // Possible null reference argument.
 await supabase.InitializeAsync();
+
+// Fixing the syntax error in the connection string assignment
+string connectionString = builder.Configuration["Supabase:CONNECTION_STRING"];
+
+// Register the DbContext
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 builder.Services.AddCors(options =>
