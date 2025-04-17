@@ -12,9 +12,9 @@ public class StorageLocation : BaseModel
     public Guid Id { get; private set; } // Unique identifier for the storage location, managed by the database
     [Column("user_id")]
     [Required]
-    public Guid UserId { get; private set; } // Identifier for the user who owns or manages the storage location
+    public Guid LenderId { get; private set; }
     [Reference(typeof(User), ReferenceAttribute.JoinType.Inner, true, "user_id")]
-    public Lender? User { get; private set; } // Reference to the Lender who owns the storage location
+    public Lender? Lender { get; private set; } // Reference to the Lender who owns the storage location
     // Public properties with private setters to ensure data integrity
     [Column("name")]
     [Required]
@@ -50,7 +50,7 @@ public class StorageLocation : BaseModel
     }
 
     // Constructor to initialize a StorageLocation instance
-    public StorageLocation(Lender User,
+    public StorageLocation(Lender lender,
                            string name,
                            string description,
                            double lat,
@@ -62,7 +62,7 @@ public class StorageLocation : BaseModel
                            double price)
     {
         Id = Guid.NewGuid();  // ID is expected to be assigned by the database system
-        UserId = User.Id; // userId is also assigned by the database system
+        LenderId = lender.Id; // userId is also assigned by the database system
         Name = name;
         Description = description;
         Lat = lat;
