@@ -1,8 +1,20 @@
 using StuMoov.Dao;
 
 var builder = WebApplication.CreateBuilder(args);
-var DB = "string"; //Placeholder, will be replaced with acutal DB instance.
 var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
+
+var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
+var key = Environment.GetEnvironmentVariable("SUPABASE_KEY");
+
+var options = new Supabase.SupabaseOptions
+{
+    AutoConnectRealtime = true
+};
+
+#pragma warning disable CS8604 // Possible null reference argument.
+var supabase = new Supabase.Client(url, key, options);
+#pragma warning restore CS8604 // Possible null reference argument.
+await supabase.InitializeAsync();
 
 // Add services to the container.
 builder.Services.AddCors(options =>
