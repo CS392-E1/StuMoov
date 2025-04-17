@@ -7,22 +7,28 @@ namespace StuMoov.Models.UserModel
     {
         public Guid Id { get; protected set; }
         [Required]
-        public string FirebaseUid { get; protected set; }
+        public Guid FirebaseUid { get; protected set; }
+        [Required]
+        public string FirstName { get; set; }
+        [Required] 
+        public string LastName { get; set;}
         [Required]
         public string Username { get; protected set; }
         [Required]
         public string Email { get; protected set; }
         [Required]
         public string PasswordHash { get; protected set; }
-        [Required]
         public UserRole Role { get; set; }
         public bool IsActive { get; set; }
         public DateTime? CreatedAt { get; protected set; }
         public DateTime? UpdatedAt { get; protected set; }
 
-        public User(Guid id, string username, string email, string passwordHash)
+        public User(Guid firebaseUid, string firstName, string lastName, string username, string email, string passwordHash)
         {
-            Id = id;
+            Id = Guid.NewGuid();
+            FirebaseUid = firebaseUid;
+            FirstName = firstName;
+            LastName = lastName;
             Username = username;
             Email = email;
             PasswordHash = passwordHash;

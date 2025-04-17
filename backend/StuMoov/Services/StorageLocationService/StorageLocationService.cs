@@ -1,4 +1,6 @@
-﻿using StuMoov.Dao; // Import Data Access Object (DAO) layer for accessing storage location data
+﻿using System.ComponentModel.DataAnnotations;
+using StuMoov.Dao; // Import Data Access Object (DAO) layer for accessing storage location data
+using StuMoov.Models;
 using StuMoov.Models.StorageLocationModel; // Import the response model for API responses
 
 namespace StuMoov.Services.StorageLocationService
@@ -6,6 +8,7 @@ namespace StuMoov.Services.StorageLocationService
     // Service class responsible for retrieving storage location data
     public class StorageLocationService
     {
+        [Required]
         private readonly StorageLocationDao _storageLocationDao; // DAO instance for data retrieval
 
         // Constructor to inject StorageLocationDao dependency
@@ -15,17 +18,17 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve all storage locations and return a structured response
-        public StorageLocationResponse GetAllLocations()
+        public Response GetAllLocations()
         {
             // Fetch the list of storage locations from the DAO
             List<StorageLocation>? locations = this._storageLocationDao.GetAll();
 
             // Return a structured response with status code, message, and retrieved data
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", locations);
+            return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to retrieve a storage location by its ID
-        public StorageLocationResponse GetLocationById(Guid id)
+        public Response GetLocationById(Guid id)
         {
             // Fetch the storage location from the DAO
             StorageLocation? location = this._storageLocationDao.GetById(id);
@@ -33,14 +36,14 @@ namespace StuMoov.Services.StorageLocationService
             // Return appropriate response based on whether the location was found
             if (location == null)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "Storage location not found",
                     null
                 );
             }
 
-            return new StorageLocationResponse(
+            return new Response(
                 StatusCodes.Status200OK,
                 "OK",
                 new List<StorageLocation> { location }
@@ -48,7 +51,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve storage locations by user ID
-        public StorageLocationResponse GetLocationsByUserId(Guid userId)
+        public Response GetLocationsByUserId(Guid userId)
         {
             // Fetch locations by user ID from the DAO
             List<StorageLocation>? locations = this._storageLocationDao.GetByUserId(userId);
@@ -56,23 +59,23 @@ namespace StuMoov.Services.StorageLocationService
             // Return appropriate response
             if (locations == null || locations.Count == 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "No storage locations found for this user",
                     null
                 );
             }
 
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", locations);
+            return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to create a new storage location
-        public StorageLocationResponse CreateLocation(StorageLocation storageLocation)
+        public Response CreateLocation(StorageLocation storageLocation)
         {
             // Validate the storageLocation object
             if (storageLocation == null)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status400BadRequest,
                     "Invalid storage location data",
                     null
@@ -84,7 +87,7 @@ namespace StuMoov.Services.StorageLocationService
 
             // Return success response with the created location
             StorageLocation? createdLocation = this._storageLocationDao.GetById(id);
-            return new StorageLocationResponse(
+            return new Response(
                 StatusCodes.Status201Created,
                 "Storage location created successfully",
                 createdLocation != null ? new List<StorageLocation> { createdLocation } : null
@@ -92,12 +95,12 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to update an existing storage location
-        public StorageLocationResponse UpdateLocation(Guid id, StorageLocation updatedStorageLocation)
+        public Response UpdateLocation(Guid id, StorageLocation updatedStorageLocation)
         {
             // Validate input
             if (updatedStorageLocation == null)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status400BadRequest,
                     "Invalid storage location data",
                     null
@@ -107,7 +110,7 @@ namespace StuMoov.Services.StorageLocationService
             // Check if location exists
             if (!this._storageLocationDao.Exists(id))
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "Storage location not found",
                     null
@@ -121,14 +124,14 @@ namespace StuMoov.Services.StorageLocationService
             {
                 // Return the updated location
                 StorageLocation? location = this._storageLocationDao.GetById(id);
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status200OK,
                     "Storage location updated successfully",
                     location != null ? new List<StorageLocation> { location } : null
                 );
             }
 
-            return new StorageLocationResponse(
+            return new Response(
                 StatusCodes.Status500InternalServerError,
                 "Failed to update storage location",
                 null
@@ -136,12 +139,12 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to delete a storage location
-        public StorageLocationResponse DeleteLocation(Guid id)
+        public Response DeleteLocation(Guid id)
         {
             // Check if location exists
             if (!this._storageLocationDao.Exists(id))
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "Storage location not found",
                     null
@@ -153,14 +156,14 @@ namespace StuMoov.Services.StorageLocationService
 
             if (success)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status200OK,
                     "Storage location deleted successfully",
                     null
                 );
             }
 
-            return new StorageLocationResponse(
+            return new Response(
                 StatusCodes.Status500InternalServerError,
                 "Failed to delete storage location",
                 null
@@ -168,12 +171,12 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to find nearby storage locations
-        public StorageLocationResponse FindNearbyLocations(double lat, double lng, double radiusKm)
+        public Response FindNearbyLocations(double lat, double lng, double radiusKm)
         {
             // Validate parameters
             if (radiusKm <= 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status400BadRequest,
                     "Radius must be a positive number",
                     null
@@ -185,41 +188,41 @@ namespace StuMoov.Services.StorageLocationService
 
             if (nearbyLocations == null || nearbyLocations.Count == 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "No storage locations found within the specified radius",
                     null
                 );
             }
 
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", nearbyLocations);
+            return new Response(StatusCodes.Status200OK, "OK", nearbyLocations);
         }
 
         // Method to find storage locations based on dimensional requirements
-        public StorageLocationResponse FindLocationsByDimensions(double requiredLength, double requiredWidth, double requiredHeight)
+        public Response FindLocationsByDimensions(double requiredLength, double requiredWidth, double requiredHeight)
         {
             // Find locations with sufficient dimensions
             List<StorageLocation>? locations = this._storageLocationDao.FindByDimensions(requiredLength, requiredWidth, requiredHeight);
 
             if (locations == null || locations.Count == 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "No storage locations found with the required dimensions",
                     null
                 );
             }
 
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", locations);
+            return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to find storage locations with sufficient volume capacity
-        public StorageLocationResponse FindLocationsWithSufficientCapacity(double requiredVolume)
+        public Response FindLocationsWithSufficientCapacity(double requiredVolume)
         {
             // Validate parameters
             if (requiredVolume <= 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status400BadRequest,
                     "Required volume must be a positive number",
                     null
@@ -231,23 +234,23 @@ namespace StuMoov.Services.StorageLocationService
 
             if (locations == null || locations.Count == 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "No storage locations found with sufficient capacity",
                     null
                 );
             }
 
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", locations);
+            return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to find storage locations with price less than or equal to the specified price
-        public StorageLocationResponse FindLocationsByPrice(double price)
+        public Response FindLocationsByPrice(double price)
         {
             // Validate parameters
             if (price <= 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status400BadRequest,
                     "Price must be a positive number",
                     null
@@ -259,14 +262,14 @@ namespace StuMoov.Services.StorageLocationService
 
             if (locations == null || locations.Count == 0)
             {
-                return new StorageLocationResponse(
+                return new Response(
                     StatusCodes.Status404NotFound,
                     "No storage locations found within the specified price range",
                     null
                 );
             }
 
-            return new StorageLocationResponse(StatusCodes.Status200OK, "OK", locations);
+            return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to get the total count of storage locations

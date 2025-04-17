@@ -8,14 +8,16 @@ namespace StuMoov.Models.UserModel
     {
         private Dictionary<Guid, StorageLocation>? StorageLocations {  get; set; }
         private Dictionary<Guid, Booking>? RentalBookings { get; set; }
-        //private Dictionary<Guid, BankInfo>? PayoutInfos { get; set; };  //Need to design PaymentInfo Class
         private Dictionary<Guid, ChatSession>? ChatSessions { get; set; }
 
         public StripeConnectAccount? StripeConnectInfo { get; private set; }
 
-        public Lender(Guid id, string username, string email, string passwordHash) : base(id, username, email, passwordHash)
+        public Lender(Guid firebaseUid, string firstName, string lastName, string username, string email, string passwordHash) : base(firebaseUid, firstName, lastName, username, email, passwordHash)
         {
-            Id = id;
+            Id = Guid.NewGuid();
+            FirebaseUid = firebaseUid;
+            FirstName = firstName;
+            LastName = lastName;
             Username = username;
             Email = email;
             PasswordHash = passwordHash;
@@ -24,7 +26,6 @@ namespace StuMoov.Models.UserModel
             CreatedAt = DateTime.UtcNow;
             StorageLocations = new Dictionary<Guid, StorageLocation>();
             RentalBookings = new Dictionary<Guid, Booking>();
-            //PayoutInfos = new Dictionaty<Guid, BankInfo>();
             ChatSessions = new Dictionary<Guid, ChatSession>();
         }
     }
