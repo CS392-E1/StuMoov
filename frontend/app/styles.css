@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+.custom-marker {
+    background: transparent;
+    border: none;
+  }
+  
+  #root {
+    width: 100%;
+    height: 100vh;
+  }

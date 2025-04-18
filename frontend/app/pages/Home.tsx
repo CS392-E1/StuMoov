@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"; // ✅ Import Link
+
 export default function Home() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-150px)]">
@@ -8,9 +10,12 @@ export default function Home() {
           </h1>
 
           <div className="flex flex-wrap gap-4 justify-center">
-            <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-              Browse Listings
-            </button>
+            {/* ✅ Wrap your button with Link */}
+            <Link to="/map-listings">
+              <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                Browse Listings
+              </button>
+            </Link>
           </div>
         </div>
       </div>
