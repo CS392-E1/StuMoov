@@ -11,6 +11,6 @@ export default [
     route("login", "./pages/auth/Login.tsx"),
     route("register", "./pages/auth/Register.tsx"),
 
-    route("map-listings", "./map-listings/map-listings.tsx"),
+    route("listings", "./pages/listings/Listings.tsx"),
   ]),
 ] satisfies RouteConfig;
