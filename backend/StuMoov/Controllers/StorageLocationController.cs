@@ -20,10 +20,11 @@ namespace StuMoov.Controllers
         }
 
         // GET: api/StorageLocation
+        // Update the method to handle the asynchronous nature of the service call
         [HttpGet]
-        public ActionResult<StorageLocationResponse> GetAllStorageLocations()
+        public async Task<ActionResult<StorageLocationResponse>> GetAllStorageLocations()
         {
-            StorageLocationResponse response = _storageLocationService.GetAllLocations();
+            StorageLocationResponse response = await _storageLocationService.GetAllLocations();
             return StatusCode(response.Status, response);
         }
 
