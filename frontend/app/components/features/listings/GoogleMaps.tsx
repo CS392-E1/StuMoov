@@ -1,16 +1,6 @@
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import { useRef, forwardRef, useImperativeHandle } from "react";
-
-// TODO: Place this in a types/ directory
-export type StorageLocation = {
-  id: string;
-  name: string;
-  description: string;
-  lat: number;
-  lng: number;
-  price: number;
-  image: string;
-};
+import { StorageLocation } from "@/types/storage";
 
 const containerStyle = {
   width: "100%",

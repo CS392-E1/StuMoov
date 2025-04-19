@@ -29,7 +29,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           />
           <button
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 text-white font-semibold px-3 py-1 rounded-md cursor-pointer hover:bg-blue-600"
           >
             Find Storage
           </button>

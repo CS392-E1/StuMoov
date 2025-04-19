@@ -1,4 +1,4 @@
-import { StorageLocation } from "./GoogleMaps";
+import { StorageLocation } from "@/types/storage";
 
 interface ListingsCardProps {
   listing: StorageLocation;
@@ -14,14 +14,15 @@ export function ListingsCard({ listing, onListingClick }: ListingsCardProps) {
       <div className="flex flex-row">
         <div className="flex flex-col flex-grow pr-3">
           <div className="font-semibold">{listing.name}</div>
-          <div className="text-sm text-gray-600 mb-2">
-            {listing.description}
+          <div className="text-sm text-gray-600">{listing.address}</div>
+          <div className="text-sm mb-2">{listing.description}</div>
+          <div className="text-blue-600 font-semibold">
+            ${listing.price}/month
           </div>
-          <div className="text-blue-600 font-bold">${listing.price}/month</div>
         </div>
         <div className="flex items-center">
           <img
-            src={listing.image}
+            src={listing.imageUrl}
             alt={listing.name}
             className="w-24 h-24 object-cover rounded"
           />
