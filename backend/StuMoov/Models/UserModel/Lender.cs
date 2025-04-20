@@ -1,32 +1,33 @@
-﻿using StuMoov.Models.ChatModel;
+using StuMoov.Models.ChatModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.UserModel.Enums;
+using Supabase.Postgrest.Attributes;
+using System.Data;
+
 
 namespace StuMoov.Models.UserModel
 {
     public class Lender : User
     {
-        private Dictionary<Guid, StorageLocation>? StorageLocations {  get; set; }
-        private Dictionary<Guid, Booking>? RentalBookings { get; set; }
-        private Dictionary<Guid, ChatSession>? ChatSessions { get; set; }
-
+        //private Dictionary<Guid, StorageLocation>? StorageLocations {  get; set; }
+        //private Dictionary<Guid, Booking>? RentalBookings { get; set; }
+        ////private Dictionary<Guid, BankInfo>? PayoutInfos { get; set; };  //Need to design PaymentInfo Class
+        //private Dictionary<Guid, ChatSession>? ChatSessions { get; set; }
+        [Reference(typeof(StripeConnectAccount))]
         public StripeConnectAccount? StripeConnectInfo { get; private set; }
+        [Column("user_role")]
+        public UserRole Role { get; private set; }
 
-        public Lender(Guid firebaseUid, string firstName, string lastName, string username, string email, string passwordHash) : base(firebaseUid, firstName, lastName, username, email, passwordHash)
+        public Lender(Guid id, string displayName, string email, string firebaseUid) : base(firebaseUid, email, displayName)
         {
-            Id = Guid.NewGuid();
-            FirebaseUid = firebaseUid;
-            FirstName = firstName;
-            LastName = lastName;
-            Username = username;
+            Id = id;
+            DisplayName = displayName;
             Email = email;
-            PasswordHash = passwordHash;
             Role = UserRole.LENDER;
-            IsActive = false;  //Need to go through OAuth
             CreatedAt = DateTime.UtcNow;
-            StorageLocations = new Dictionary<Guid, StorageLocation>();
-            RentalBookings = new Dictionary<Guid, Booking>();
-            ChatSessions = new Dictionary<Guid, ChatSession>();
+            // RentalBookings = new Dictionary<Guid, Booking>();
+            //PaymentInfos = new Dictionaty<Guid, PaymentInfo>();
+            // ChatSessions = new Dictionary<Guid, ChatSession>();
         }
     }
 }

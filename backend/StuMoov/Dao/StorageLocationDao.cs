@@ -11,50 +11,50 @@ public class StorageLocationDao
         // Initialize the dictionary
         storageLocations = new Dictionary<Guid, StorageLocation>();
 
-        // Add some initial mock data
-        StorageLocation locationA = new StorageLocation(
-            Guid.NewGuid(),
-            "Storage A",
-            "A small storage location",
-            -33.860664,
-            151.208138,
-            10.0,
-            5.0,
-            3.0,
-            150.0,
-            120.0
-        );
+        //// Add some initial mock data
+        //StorageLocation locationA = new StorageLocation(
+        //    Guid.NewGuid(),
+        //    "Storage A",
+        //    "A small storage location",
+        //    -33.860664,
+        //    151.208138,
+        //    10.0,
+        //    5.0,
+        //    3.0,
+        //    150.0,
+        //    120.0
+        //);
 
-        StorageLocation locationB = new StorageLocation(
-            Guid.NewGuid(),
-            "Storage B",
-            "A medium storage location",
-            -33.87664,
-            151.218138,
-            12.0,
-            6.0,
-            4.0,
-            200.0,
-            180.0
-        );
+        //StorageLocation locationB = new StorageLocation(
+        //    Guid.NewGuid(),
+        //    "Storage B",
+        //    "A medium storage location",
+        //    -33.87664,
+        //    151.218138,
+        //    12.0,
+        //    6.0,
+        //    4.0,
+        //    200.0,
+        //    180.0
+        //);
 
-        StorageLocation locationC = new StorageLocation(
-            Guid.NewGuid(),
-            "Storage C",
-            "A large storage location",
-            -33.870664,
-            151.198138,
-            15.0,
-            8.0,
-            5.0,
-            600.0,
-            450.0
-        );
+        //StorageLocation locationC = new StorageLocation(
+        //    Guid.NewGuid(),
+        //    "Storage C",
+        //    "A large storage location",
+        //    -33.870664,
+        //    151.198138,
+        //    15.0,
+        //    8.0,
+        //    5.0,
+        //    600.0,
+        //    450.0
+        //);
 
-        // Using GUIDs as keys for the dictionary
-        storageLocations.Add(locationA.Id, locationA);
-        storageLocations.Add(locationB.Id, locationB);
-        storageLocations.Add(locationC.Id, locationC);
+        //// Using GUIDs as keys for the dictionary
+        //storageLocations.Add(locationA.Id, locationA);
+        //storageLocations.Add(locationB.Id, locationB);
+        //storageLocations.Add(locationC.Id, locationC);
 
     }
 

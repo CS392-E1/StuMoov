@@ -10,5 +10,7 @@ export default [
     index("./pages/Home.tsx"),
     route("login", "./pages/auth/Login.tsx"),
     route("register", "./pages/auth/Register.tsx"),
+
+    route("listings", "./pages/listings/Listings.tsx"),
   ]),
 ] satisfies RouteConfig;
