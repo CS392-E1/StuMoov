@@ -1,4 +1,4 @@
-﻿using StuMoov.Models.ChatModel;
+using StuMoov.Models.ChatModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.UserModel.Enums;
 using Supabase.Postgrest.Attributes;

@@ -3,11 +3,12 @@ using StuMoov.Dao;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Services.StorageLocationService;
 using Microsoft.AspNetCore.Mvc;
+using StuMoov.Models;
 
 namespace StuMoov.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/storage")]
     public class StorageLocationController : ControllerBase
     {
         private readonly StorageLocationService _storageLocationService;
@@ -30,89 +31,89 @@ namespace StuMoov.Controllers
 
         // GET: api/StorageLocation/{id}
         [HttpGet("{id}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationById(Guid id)
+        public ActionResult<Response> GetStorageLocationById(Guid id)
         {
-            StorageLocationResponse response = _storageLocationService.GetLocationById(id);
+            Response response = _storageLocationService.GetLocationById(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/user/{userId}
         [HttpGet("user/{userId}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationsByUserId(Guid userId)
+        public ActionResult<Response> GetStorageLocationsByUserId(Guid userId)
         {
-            StorageLocationResponse response = _storageLocationService.GetLocationsByUserId(userId);
+            Response response = _storageLocationService.GetLocationsByUserId(userId);
             return StatusCode(response.Status, response);
         }
 
         // POST: api/StorageLocation
         [HttpPost]
-        public ActionResult<StorageLocationResponse> CreateStorageLocation([FromBody] StorageLocation storageLocation)
+        public ActionResult<Response> CreateStorageLocation([FromBody] StorageLocation storageLocation)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            StorageLocationResponse response = _storageLocationService.CreateLocation(storageLocation);
+            Response response = _storageLocationService.CreateLocation(storageLocation);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/StorageLocation/{id}
         [HttpPut("{id}")]
-        public ActionResult<StorageLocationResponse> UpdateStorageLocation(Guid id, [FromBody] StorageLocation storageLocation)
+        public ActionResult<Response> UpdateStorageLocation(Guid id, [FromBody] StorageLocation storageLocation)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            StorageLocationResponse response = _storageLocationService.UpdateLocation(id, storageLocation);
+            Response response = _storageLocationService.UpdateLocation(id, storageLocation);
             return StatusCode(response.Status, response);
         }
 
         // DELETE: api/StorageLocation/{id}
         [HttpDelete("{id}")]
-        public ActionResult<StorageLocationResponse> DeleteStorageLocation(Guid id)
+        public ActionResult<Response> DeleteStorageLocation(Guid id)
         {
-            StorageLocationResponse response = _storageLocationService.DeleteLocation(id);
+            Response response = _storageLocationService.DeleteLocation(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/nearby
         [HttpGet("nearby")]
-        public ActionResult<StorageLocationResponse> FindNearbyLocations(
+        public ActionResult<Response> FindNearbyLocations(
             [FromQuery] double lat,
             [FromQuery] double lng,
             [FromQuery] double radiusKm)
         {
-            StorageLocationResponse response = _storageLocationService.FindNearbyLocations(lat, lng, radiusKm);
+            Response response = _storageLocationService.FindNearbyLocations(lat, lng, radiusKm);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/dimensions
         [HttpGet("dimensions")]
-        public ActionResult<StorageLocationResponse> FindLocationsByDimensions(
+        public ActionResult<Response> FindLocationsByDimensions(
             [FromQuery] double length = -1,
             [FromQuery] double width = -1,
             [FromQuery] double height = -1)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsByDimensions(length, width, height);
+            Response response = _storageLocationService.FindLocationsByDimensions(length, width, height);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/capacity
         [HttpGet("capacity")]
-        public ActionResult<StorageLocationResponse> FindLocationsWithSufficientCapacity([FromQuery] double volume)
+        public ActionResult<Response> FindLocationsWithSufficientCapacity([FromQuery] double volume)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsWithSufficientCapacity(volume);
+            Response response = _storageLocationService.FindLocationsWithSufficientCapacity(volume);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/price
         [HttpGet("price")]
-        public ActionResult<StorageLocationResponse> FindLocationsByPrice([FromQuery] double maxPrice)
+        public ActionResult<Response> FindLocationsByPrice([FromQuery] double maxPrice)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsByPrice(maxPrice);
+            Response response = _storageLocationService.FindLocationsByPrice(maxPrice);
             return StatusCode(response.Status, response);
         }
 

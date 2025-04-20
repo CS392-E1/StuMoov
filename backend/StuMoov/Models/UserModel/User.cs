@@ -1,4 +1,4 @@
-﻿using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Attributes;
 using System.ComponentModel.DataAnnotations;
 using Supabase.Postgrest.Models;
 
