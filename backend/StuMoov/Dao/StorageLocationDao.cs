@@ -78,7 +78,7 @@ public class StorageLocationDao
     public List<StorageLocation>? GetByUserId(Guid userId)
     {
         return storageLocations.Values
-            .Where(loc => loc.UserId == userId)
+            .Where(loc => loc.LenderId == userId)
             .ToList();
     }
 

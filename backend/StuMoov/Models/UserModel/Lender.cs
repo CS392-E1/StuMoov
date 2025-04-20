@@ -18,6 +18,10 @@ namespace StuMoov.Models.UserModel
         [Column("user_role")]
         public UserRole Role { get; private set; }
 
+        public Lender() : base()
+        {
+        }
+
         public Lender(Guid id, string displayName, string email, string firebaseUid) : base(firebaseUid, email, displayName)
         {
             Id = id;

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { auth } from "@/lib/firebase";
 
 const Header: React.FC = () => {
   return (
@@ -10,20 +11,28 @@ const Header: React.FC = () => {
             StuMoov
           </Link>
         </div>
-        <div className="flex gap-4">
-          <Link
-            to="/login"
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            to="/register"
-            className="border border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-2 px-4 rounded-md transition-colors"
-          >
-            Register
-          </Link>
-        </div>
+        {auth.currentUser ? (
+          <div className="flex gap-4 items-center">
+            <span>
+              {auth.currentUser?.displayName || auth.currentUser?.email}
+            </span>
+          </div>
+        ) : (
+          <div className="flex gap-4">
+            <Link
+              to="/login"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="border border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Register
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -8,6 +8,8 @@ namespace StuMoov.Models.UserModel
     public abstract class User : BaseModel
     {
         [Key]
+        [Column("id")]
+
         [PrimaryKey("id")]
         public Guid Id { get; protected set; }
         [Column("firebase_uid")]
@@ -30,6 +32,10 @@ namespace StuMoov.Models.UserModel
         public DateTime? CreatedAt { get; set; }
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
+
+        protected User()
+        {
+        }
 
         public User(string firebaseUid, string email, string? displayName = null)
         {

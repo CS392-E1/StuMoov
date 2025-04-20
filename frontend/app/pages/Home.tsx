@@ -1,6 +1,22 @@
-import { Link } from "react-router-dom";
+import { Label } from "@/components/ui/label";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
+import { signOutFirebase, auth } from "@/lib/firebase";
 
 export default function Home() {
+  const { user } = useAuth();
+  const userRole = user?.role;
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOutFirebase();
+      navigate("/");
+    } catch (error) {
+      console.error("logout error:", error);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-[calc(100vh-150px)]">
       <div className="flex-grow flex items-center justify-center bg-gray-50 py-16">
@@ -15,6 +31,20 @@ export default function Home() {
                 Browse Listings
               </button>
             </Link>
+            <div>
+              <Label>
+                <p>Your role is {userRole || "unknown"}</p>
+              </Label>
+            </div>
+
+            {auth.currentUser && (
+              <button
+                onClick={handleLogout}
+                className="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Log Out
+              </button>
+            )}
           </div>
         </div>
       </div>
