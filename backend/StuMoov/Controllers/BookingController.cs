@@ -12,7 +12,7 @@ namespace StuMoov.Controllers
     {
         private readonly BookingService _bookingService;
 
-        // Constructor to inject BookingDao dependency
+        // Constructor to inject BookingService dependency
         public BookingController(BookingDao bookingDao)
         {
             // Create BookingService instance using injected DAO
@@ -21,159 +21,159 @@ namespace StuMoov.Controllers
 
         // GET: api/bookings
         [HttpGet]
-        public ActionResult<Response> GetAllBookings()
+        public async Task<ActionResult<Response>> GetAllBookings()
         {
-            Response response = _bookingService.GetAllBookings();
+            Response response = await _bookingService.GetAllBookingsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/{id}
         [HttpGet("{id}")]
-        public ActionResult<Response> GetBookingById(Guid id)
+        public async Task<ActionResult<Response>> GetBookingById(Guid id)
         {
-            Response response = _bookingService.GetBookingById(id);
+            Response response = await _bookingService.GetBookingByIdAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/renter/{renterId}
         [HttpGet("renter/{renterId}")]
-        public ActionResult<Response> GetBookingsByRenterId(Guid renterId)
+        public async Task<ActionResult<Response>> GetBookingsByRenterId(Guid renterId)
         {
-            Response response = _bookingService.GetBookingsByRenterId(renterId);
+            Response response = await _bookingService.GetBookingsByRenterIdAsync(renterId);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/storage/{storageLocationId}
         [HttpGet("storage/{storageLocationId}")]
-        public ActionResult<Response> GetBookingsByStorageLocationId(Guid storageLocationId)
+        public async Task<ActionResult<Response>> GetBookingsByStorageLocationId(Guid storageLocationId)
         {
-            Response response = _bookingService.GetBookingsByStorageLocationId(storageLocationId);
+            Response response = await _bookingService.GetBookingsByStorageLocationIdAsync(storageLocationId);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/status/{status}
         [HttpGet("status/{status}")]
-        public ActionResult<Response> GetBookingsByStatus(BookingStatus status)
+        public async Task<ActionResult<Response>> GetBookingsByStatus(BookingStatus status)
         {
-            Response response = _bookingService.GetBookingsByStatus(status);
+            Response response = await _bookingService.GetBookingsByStatusAsync(status);
             return StatusCode(response.Status, response);
         }
 
         // POST: api/bookings
         [HttpPost]
-        public ActionResult<Response> CreateBooking([FromBody] Booking booking)
+        public async Task<ActionResult<Response>> CreateBooking([FromBody] Booking booking)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Response response = _bookingService.CreateBooking(booking);
+            Response response = await _bookingService.CreateBookingAsync(booking);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/bookings/{id}/confirm
         [HttpPut("{id}/confirm")]
-        public ActionResult<Response> ConfirmBooking(Guid id, [FromBody] Guid paymentId)
+        public async Task<ActionResult<Response>> ConfirmBooking(Guid id, [FromBody] Guid paymentId)
         {
-            Response response = _bookingService.ConfirmBooking(id, paymentId);
+            Response response = await _bookingService.ConfirmBookingAsync(id, paymentId);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/bookings/{id}/cancel
         [HttpPut("{id}/cancel")]
-        public ActionResult<Response> CancelBooking(Guid id)
+        public async Task<ActionResult<Response>> CancelBooking(Guid id)
         {
-            Response response = _bookingService.CancelBooking(id);
+            Response response = await _bookingService.CancelBookingAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/bookings/{id}
         [HttpPut("{id}")]
-        public ActionResult<Response> UpdateBooking(
+        public async Task<ActionResult<Response>> UpdateBooking(
             Guid id,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
             [FromQuery] decimal totalPrice)
         {
-            Response response = _bookingService.UpdateBooking(id, startDate, endDate, totalPrice);
+            Response response = await _bookingService.UpdateBookingAsync(id, startDate, endDate, totalPrice);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/active
         [HttpGet("active")]
-        public ActionResult<Response> GetActiveBookings()
+        public async Task<ActionResult<Response>> GetActiveBookings()
         {
-            Response response = _bookingService.GetActiveBookings();
+            Response response = await _bookingService.GetActiveBookingsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/daterange
         [HttpGet("daterange")]
-        public ActionResult<Response> GetBookingsForDateRange(
+        public async Task<ActionResult<Response>> GetBookingsForDateRange(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
-            Response response = _bookingService.GetBookingsForDateRange(startDate, endDate);
+            Response response = await _bookingService.GetBookingsForDateRangeAsync(startDate, endDate);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/availability
         [HttpGet("availability")]
-        public ActionResult<Response> CheckStorageLocationAvailability(
+        public async Task<ActionResult<Response>> CheckStorageLocationAvailability(
             [FromQuery] Guid storageLocationId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
-            Response response = _bookingService.IsStorageLocationAvailable(storageLocationId, startDate, endDate);
+            Response response = await _bookingService.IsStorageLocationAvailableAsync(storageLocationId, startDate, endDate);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/{id}/duration
         [HttpGet("{id}/duration")]
-        public ActionResult<Response> GetBookingDuration(Guid id)
+        public async Task<ActionResult<Response>> GetBookingDuration(Guid id)
         {
-            Response response = _bookingService.CalculateBookingDuration(id);
+            Response response = await _bookingService.CalculateBookingDurationAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/upcoming
         [HttpGet("upcoming")]
-        public ActionResult<Response> GetUpcomingBookings()
+        public async Task<ActionResult<Response>> GetUpcomingBookings()
         {
-            Response response = _bookingService.GetUpcomingBookings();
+            Response response = await _bookingService.GetUpcomingBookingsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/current
         [HttpGet("current")]
-        public ActionResult<Response> GetCurrentBookings()
+        public async Task<ActionResult<Response>> GetCurrentBookings()
         {
-            Response response = _bookingService.GetCurrentBookings();
+            Response response = await _bookingService.GetCurrentBookingsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/expired
         [HttpGet("expired")]
-        public ActionResult<Response> GetExpiredBookings()
+        public async Task<ActionResult<Response>> GetExpiredBookings()
         {
-            Response response = _bookingService.GetExpiredBookings();
+            Response response = await _bookingService.GetExpiredBookingsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/bookings/starting-within/{days}
         [HttpGet("starting-within/{days}")]
-        public ActionResult<Response> GetBookingsStartingWithinDays(int days)
+        public async Task<ActionResult<Response>> GetBookingsStartingWithinDays(int days)
         {
-            Response response = _bookingService.GetBookingsStartingWithinDays(days);
+            Response response = await _bookingService.GetBookingsStartingWithinDaysAsync(days);
             return StatusCode(response.Status, response);
         }
 
         // HEAD: api/bookings/{id}
         [HttpHead("{id}")]
-        public IActionResult CheckBookingExists(Guid id)
+        public async Task<IActionResult> CheckBookingExists(Guid id)
         {
-            var response = _bookingService.GetBookingById(id);
+            var response = await _bookingService.GetBookingByIdAsync(id);
             return response.Status == 200 ? Ok() : NotFound();
         }
     }

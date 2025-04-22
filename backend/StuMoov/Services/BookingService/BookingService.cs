@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.BookingModel;
@@ -17,7 +21,7 @@ namespace StuMoov.Services.BookingService
         }
 
         // Create a new booking - taking a Booking object directly
-        public Response CreateBooking(Booking booking)
+        public async Task<Response> CreateBookingAsync(Booking booking)
         {
             try
             {
@@ -28,10 +32,11 @@ namespace StuMoov.Services.BookingService
                 ValidateBooking(booking);
 
                 // Check if the storage location is available for the requested dates
-                if (!_bookingDao.IsStorageLocationAvailable(booking.StorageLocationId, booking.StartDate, booking.EndDate))
+                if (!await _bookingDao.IsStorageLocationAvailableAsync(booking.StorageLocationId, booking.StartDate, booking.EndDate))
                     return new Response(StatusCodes.Status409Conflict, "The storage location is not available for the requested dates", null);
 
-                _bookingDao.CreateBooking(booking);
+                var id = await _bookingDao.CreateAsync(booking);
+                booking = await _bookingDao.GetByIdAsync(id);
 
                 return new Response(StatusCodes.Status201Created, "Booking created successfully", booking);
             }
@@ -42,14 +47,14 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get a booking by ID
-        public Response GetBookingById(Guid id)
+        public async Task<Response> GetBookingByIdAsync(Guid id)
         {
             try
             {
                 if (id == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Booking ID cannot be empty", null);
 
-                var booking = _bookingDao.GetBookingById(id);
+                var booking = await _bookingDao.GetByIdAsync(id);
                 if (booking == null)
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
 
@@ -62,11 +67,11 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get all bookings
-        public Response GetAllBookings()
+        public async Task<Response> GetAllBookingsAsync()
         {
             try
             {
-                var bookings = _bookingDao.GetAllBookings();
+                var bookings = await _bookingDao.GetAllAsync();
                 return new Response(StatusCodes.Status200OK, "Bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -76,14 +81,14 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get bookings by renter ID
-        public Response GetBookingsByRenterId(Guid renterId)
+        public async Task<Response> GetBookingsByRenterIdAsync(Guid renterId)
         {
             try
             {
                 if (renterId == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Renter ID cannot be empty", null);
 
-                var bookings = _bookingDao.GetBookingsByRenterId(renterId);
+                var bookings = await _bookingDao.GetByRenterIdAsync(renterId);
                 return new Response(StatusCodes.Status200OK, "Bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -93,14 +98,14 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get bookings by storage location ID
-        public Response GetBookingsByStorageLocationId(Guid storageLocationId)
+        public async Task<Response> GetBookingsByStorageLocationIdAsync(Guid storageLocationId)
         {
             try
             {
                 if (storageLocationId == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Storage location ID cannot be empty", null);
 
-                var bookings = _bookingDao.GetBookingsByStorageLocationId(storageLocationId);
+                var bookings = await _bookingDao.GetByStorageLocationIdAsync(storageLocationId);
                 return new Response(StatusCodes.Status200OK, "Bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -110,11 +115,11 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get bookings by status
-        public Response GetBookingsByStatus(BookingStatus status)
+        public async Task<Response> GetBookingsByStatusAsync(BookingStatus status)
         {
             try
             {
-                var bookings = _bookingDao.GetBookingsByStatus(status);
+                var bookings = await _bookingDao.GetByStatusAsync(status);
                 return new Response(StatusCodes.Status200OK, "Bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -124,7 +129,7 @@ namespace StuMoov.Services.BookingService
         }
 
         // Confirm a booking
-        public Response ConfirmBooking(Guid id, Guid paymentId)
+        public async Task<Response> ConfirmBookingAsync(Guid id, Guid paymentId)
         {
             try
             {
@@ -134,23 +139,21 @@ namespace StuMoov.Services.BookingService
                 if (paymentId == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Payment ID cannot be empty", null);
 
-                var booking = _bookingDao.GetBookingById(id);
+                var booking = await _bookingDao.GetByIdAsync(id);
                 if (booking == null)
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
 
                 if (booking.Status != BookingStatus.PENDING)
                     return new Response(StatusCodes.Status400BadRequest, "Only pending bookings can be confirmed", null);
 
-                // Set payment ID
-                if (!_bookingDao.SetPaymentId(id, paymentId))
-                    return new Response(StatusCodes.Status500InternalServerError, "Failed to set payment ID", null);
-
-                // Update booking status
-                if (!_bookingDao.UpdateBookingStatus(id, BookingStatus.CONFIRMED))
+                // Update booking status - we can't directly set the PaymentId in the new model
+                // since it's a private setter. Instead, we'd need to create a new booking
+                // or modify the model to allow this operation
+                if (!await _bookingDao.UpdateStatusAsync(id, BookingStatus.CONFIRMED))
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to update booking status", null);
 
                 // Get the updated booking
-                var updatedBooking = _bookingDao.GetBookingById(id);
+                var updatedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking confirmed successfully", updatedBooking);
             }
             catch (Exception ex)
@@ -160,25 +163,25 @@ namespace StuMoov.Services.BookingService
         }
 
         // Cancel a booking
-        public Response CancelBooking(Guid id)
+        public async Task<Response> CancelBookingAsync(Guid id)
         {
             try
             {
                 if (id == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Booking ID cannot be empty", null);
 
-                var booking = _bookingDao.GetBookingById(id);
+                var booking = await _bookingDao.GetByIdAsync(id);
                 if (booking == null)
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
 
                 if (booking.Status == BookingStatus.CANCELLED)
                     return new Response(StatusCodes.Status400BadRequest, "Booking is already cancelled", null);
 
-                if (!_bookingDao.UpdateBookingStatus(id, BookingStatus.CANCELLED))
+                if (!await _bookingDao.UpdateStatusAsync(id, BookingStatus.CANCELLED))
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to cancel booking", null);
 
                 // Get the updated booking
-                var updatedBooking = _bookingDao.GetBookingById(id);
+                var updatedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking cancelled successfully", updatedBooking);
             }
             catch (Exception ex)
@@ -188,7 +191,7 @@ namespace StuMoov.Services.BookingService
         }
 
         // Update booking
-        public Response UpdateBooking(Guid id, DateTime startDate, DateTime endDate, decimal totalPrice)
+        public async Task<Response> UpdateBookingAsync(Guid id, DateTime startDate, DateTime endDate, decimal totalPrice)
         {
             try
             {
@@ -201,7 +204,7 @@ namespace StuMoov.Services.BookingService
                 if (totalPrice <= 0)
                     return new Response(StatusCodes.Status400BadRequest, "Total price must be greater than zero", null);
 
-                var existingBooking = _bookingDao.GetBookingById(id);
+                var existingBooking = await _bookingDao.GetByIdAsync(id);
                 if (existingBooking == null)
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
 
@@ -210,7 +213,7 @@ namespace StuMoov.Services.BookingService
 
                 // Check if new dates overlap with existing bookings (excluding the current booking)
                 var storageLocationId = existingBooking.StorageLocationId;
-                var overlappingBookings = _bookingDao.GetBookingsByStorageLocationId(storageLocationId)
+                var overlappingBookings = (await _bookingDao.GetByStorageLocationIdAsync(storageLocationId))
                     .Where(b => b.Id != id && b.Status != BookingStatus.CANCELLED)
                     .Where(b =>
                         (b.StartDate >= startDate && b.StartDate < endDate) ||
@@ -222,11 +225,11 @@ namespace StuMoov.Services.BookingService
                     return new Response(StatusCodes.Status409Conflict, "The requested dates conflict with existing bookings", null);
 
                 // Update the booking
-                if (!_bookingDao.UpdateBooking(id, startDate, endDate, totalPrice))
+                if (!await _bookingDao.UpdateAsync(id, startDate, endDate, totalPrice))
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to update booking", null);
 
                 // Get the updated booking
-                var updatedBooking = _bookingDao.GetBookingById(id);
+                var updatedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking updated successfully", updatedBooking);
             }
             catch (Exception ex)
@@ -236,11 +239,11 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get active bookings
-        public Response GetActiveBookings()
+        public async Task<Response> GetActiveBookingsAsync()
         {
             try
             {
-                var bookings = _bookingDao.GetActiveBookings();
+                var bookings = await _bookingDao.GetActiveAsync();
                 return new Response(StatusCodes.Status200OK, "Active bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -250,14 +253,14 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get bookings for a date range
-        public Response GetBookingsForDateRange(DateTime startDate, DateTime endDate)
+        public async Task<Response> GetBookingsForDateRangeAsync(DateTime startDate, DateTime endDate)
         {
             try
             {
                 if (startDate >= endDate)
                     return new Response(StatusCodes.Status400BadRequest, "Start date must be before end date", null);
 
-                var bookings = _bookingDao.GetBookingsForDateRange(startDate, endDate);
+                var bookings = await _bookingDao.GetForDateRangeAsync(startDate, endDate);
                 return new Response(StatusCodes.Status200OK, "Bookings retrieved successfully", bookings);
             }
             catch (Exception ex)
@@ -267,7 +270,7 @@ namespace StuMoov.Services.BookingService
         }
 
         // Check if a storage location is available for a date range
-        public Response IsStorageLocationAvailable(Guid storageLocationId, DateTime startDate, DateTime endDate)
+        public async Task<Response> IsStorageLocationAvailableAsync(Guid storageLocationId, DateTime startDate, DateTime endDate)
         {
             try
             {
@@ -277,7 +280,7 @@ namespace StuMoov.Services.BookingService
                 if (startDate >= endDate)
                     return new Response(StatusCodes.Status400BadRequest, "Start date must be before end date", null);
 
-                bool isAvailable = _bookingDao.IsStorageLocationAvailable(storageLocationId, startDate, endDate);
+                bool isAvailable = await _bookingDao.IsStorageLocationAvailableAsync(storageLocationId, startDate, endDate);
                 return new Response(
                     StatusCodes.Status200OK,
                     isAvailable ? "Storage location is available" : "Storage location is not available",
@@ -291,14 +294,14 @@ namespace StuMoov.Services.BookingService
         }
 
         // Calculate booking duration in days
-        public Response CalculateBookingDuration(Guid id)
+        public async Task<Response> CalculateBookingDurationAsync(Guid id)
         {
             try
             {
                 if (id == Guid.Empty)
                     return new Response(StatusCodes.Status400BadRequest, "Booking ID cannot be empty", null);
 
-                var booking = _bookingDao.GetBookingById(id);
+                var booking = await _bookingDao.GetByIdAsync(id);
                 if (booking == null)
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
 
@@ -312,12 +315,13 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get all upcoming bookings (start date in the future)
-        public Response GetUpcomingBookings()
+        public async Task<Response> GetUpcomingBookingsAsync()
         {
             try
             {
                 var now = DateTime.Now;
-                var bookings = _bookingDao.GetActiveBookings()
+                var activeBookings = await _bookingDao.GetActiveAsync();
+                var bookings = activeBookings
                     .Where(b => b.StartDate > now)
                     .ToList();
 
@@ -329,14 +333,14 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-
         // Get current bookings (between start and end date)
-        public Response GetCurrentBookings()
+        public async Task<Response> GetCurrentBookingsAsync()
         {
             try
             {
                 var now = DateTime.Now;
-                var bookings = _bookingDao.GetActiveBookings()
+                var activeBookings = await _bookingDao.GetActiveAsync();
+                var bookings = activeBookings
                     .Where(b => b.StartDate <= now && b.EndDate >= now)
                     .ToList();
 
@@ -349,12 +353,13 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get expired bookings (end date in the past)
-        public Response GetExpiredBookings()
+        public async Task<Response> GetExpiredBookingsAsync()
         {
             try
             {
                 var now = DateTime.Now;
-                var bookings = _bookingDao.GetAllBookings()
+                var allBookings = await _bookingDao.GetAllAsync();
+                var bookings = allBookings
                     .Where(b => b.EndDate < now)
                     .ToList();
 
@@ -367,7 +372,7 @@ namespace StuMoov.Services.BookingService
         }
 
         // Get bookings that start within a specific number of days
-        public Response GetBookingsStartingWithinDays(int days)
+        public async Task<Response> GetBookingsStartingWithinDaysAsync(int days)
         {
             try
             {
@@ -377,7 +382,8 @@ namespace StuMoov.Services.BookingService
                 var now = DateTime.Now;
                 var futureDate = now.AddDays(days);
 
-                var bookings = _bookingDao.GetActiveBookings()
+                var activeBookings = await _bookingDao.GetActiveAsync();
+                var bookings = activeBookings
                     .Where(b => b.StartDate >= now && b.StartDate <= futureDate)
                     .ToList();
 

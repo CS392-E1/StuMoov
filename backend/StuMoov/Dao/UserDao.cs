@@ -9,37 +9,37 @@ namespace StuMoov.Dao
         public UserDao() { 
             Users = new Dictionary<Guid, User>();
 
-            // Mock Renter
-            User renter1 = new Renter(
-                Guid.NewGuid(),                      // FirebaseUid
-                "Alice",                             // FirstName
-                "Smith",                             // LastName
-                "alice_renter",                      // Username
-                "alice@example.com",                 // Email
-                "hashed-password-alice"              // PasswordHash
-            );
+            //// Mock Renter
+            //User renter1 = new Renter(
+            //    Guid.NewGuid(),                      // FirebaseUid
+            //    "Alice",                             // FirstName
+            //    "Smith",                             // LastName
+            //    "alice_renter",                      // Username
+            //    "alice@example.com",                 // Email
+            //    "hashed-password-alice"              // PasswordHash
+            //);
 
-            // Mock Lender
-            User lender = new Lender(
-                Guid.NewGuid(),                      // FirebaseUid
-                "John",                              // FirstName
-                "Doe",                               // LastName
-                "john_lender",                       // Username
-                "john@example.com",                  // Email
-                "hashed-password-john"               // PasswordHash
-            );
+            //// Mock Lender
+            //User lender = new Lender(
+            //    Guid.NewGuid(),                      // FirebaseUid
+            //    "John",                              // FirstName
+            //    "Doe",                               // LastName
+            //    "john_lender",                       // Username
+            //    "john@example.com",                  // Email
+            //    "hashed-password-john"               // PasswordHash
+            //);
 
-            User renter2 = new Renter(
-                Guid.NewGuid(),                      // FirebaseUid
-                "Ludwig",                             // FirstName
-                "Jake",                             // LastName
-                "LDVG_renter",                      // Username
-                "ldvg@example.com",                 // Email
-                "hashed-password-ldvg"              // PasswordHash
-            );
-            Users[renter1.Id] = renter1;
-            Users[renter2.Id] = renter2;
-            Users[lender.Id] = lender;
+            //User renter2 = new Renter(
+            //    Guid.NewGuid(),                      // FirebaseUid
+            //    "Ludwig",                             // FirstName
+            //    "Jake",                             // LastName
+            //    "LDVG_renter",                      // Username
+            //    "ldvg@example.com",                 // Email
+            //    "hashed-password-ldvg"              // PasswordHash
+            //);
+            //Users[renter1.Id] = renter1;
+            //Users[renter2.Id] = renter2;
+            //Users[lender.Id] = lender;
         }
 
         public User? GetUserById(Guid id)
@@ -54,7 +54,7 @@ namespace StuMoov.Dao
         // Get user by username
         public User? GetUserByUsername(string username)
         {
-            return Users.Values.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+            return Users.Values.FirstOrDefault(u => u.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase));
         }
 
         // Get user by email
@@ -71,8 +71,8 @@ namespace StuMoov.Dao
                 return null;
             }
 
-            // Check if username or email already exists
-            if (GetUserByUsername(user.Username) != null || GetUserByEmail(user.Email) != null)
+            // Check if email already exists
+            if (GetUserByEmail(user.Email) != null)
             {
                 return null;
             }

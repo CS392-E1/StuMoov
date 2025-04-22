@@ -98,25 +98,6 @@ namespace StuMoov.Services.UserService
                 );
             }
 
-            // Check if username or email already exists
-            if (_userDao.GetUserByUsername(user.Username) != null)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Username already exists",
-                    null
-                );
-            }
-
-            if (_userDao.GetUserByEmail(user.Email) != null)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Email already exists",
-                    null
-                );
-            }
-
             // Add user to database
             User? registeredUser = _userDao.AddUser(user);
 
@@ -156,17 +137,6 @@ namespace StuMoov.Services.UserService
                 return new Response(
                     StatusCodes.Status404NotFound,
                     "User not found",
-                    null
-                );
-            }
-
-            // Check if new username conflicts with another user
-            User? userWithSameUsername = _userDao.GetUserByUsername(user.Username);
-            if (userWithSameUsername != null && userWithSameUsername.Id != user.Id)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Username already exists",
                     null
                 );
             }

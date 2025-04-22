@@ -18,7 +18,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve all storage locations and return a structured response
-        public async Task<StorageLocationResponse> GetAllLocations()
+        public Response GetAllLocations()
         {
             // Fetch the list of storage locations from the DAO
             List<StorageLocation>? locations = this._storageLocationDao.GetAll();

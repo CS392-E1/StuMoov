@@ -113,9 +113,9 @@ namespace StuMoov.Db
 
             // StorageLocation -> User (Lender)
             modelBuilder.Entity<StorageLocation>()
-                .HasOne(sl => sl.User)
+                .HasOne(sl => sl.Lender)
                 .WithMany()
-                .HasForeignKey(sl => sl.UserId)
+                .HasForeignKey(sl => sl.LenderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Payment -> Renter
