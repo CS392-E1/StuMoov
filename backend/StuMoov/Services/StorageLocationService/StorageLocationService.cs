@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using StuMoov.Dao; // Import Data Access Object (DAO) layer for accessing storage location data
 using StuMoov.Models;
 using StuMoov.Models.StorageLocationModel; // Import the response model for API responses
@@ -18,20 +18,20 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to retrieve all storage locations and return a structured response
-        public Response GetAllLocations()
+        public async Task<Response> GetAllLocationsAsync()
         {
             // Fetch the list of storage locations from the DAO
-            List<StorageLocation>? locations = this._storageLocationDao.GetAll();
+            List<StorageLocation> locations = await this._storageLocationDao.GetAllAsync();
 
             // Return a structured response with status code, message, and retrieved data
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
         // Method to retrieve a storage location by its ID
-        public Response GetLocationById(Guid id)
+        public async Task<Response> GetLocationByIdAsync(Guid id)
         {
             // Fetch the storage location from the DAO
-            StorageLocation? location = this._storageLocationDao.GetById(id);
+            StorageLocation? location = await this._storageLocationDao.GetByIdAsync(id);
 
             // Return appropriate response based on whether the location was found
             if (location == null)
@@ -50,11 +50,11 @@ namespace StuMoov.Services.StorageLocationService
             );
         }
 
-        // Method to retrieve storage locations by user ID
-        public Response GetLocationsByUserId(Guid userId)
+        // Method to retrieve storage locations by lender ID
+        public async Task<Response> GetLocationsByUserIdAsync(Guid lenderId)
         {
             // Fetch locations by user ID from the DAO
-            List<StorageLocation>? locations = this._storageLocationDao.GetByUserId(userId);
+            List<StorageLocation> locations = await this._storageLocationDao.GetByLenderIdAsync(lenderId);
 
             // Return appropriate response
             if (locations == null || locations.Count == 0)
@@ -70,7 +70,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to create a new storage location
-        public Response CreateLocation(StorageLocation storageLocation)
+        public async Task<Response> CreateLocationAsync(StorageLocation storageLocation)
         {
             // Validate the storageLocation object
             if (storageLocation == null)
@@ -83,10 +83,10 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Create the storage location using the DAO
-            Guid id = this._storageLocationDao.Create(storageLocation);
+            Guid id = await this._storageLocationDao.CreateAsync(storageLocation);
 
             // Return success response with the created location
-            StorageLocation? createdLocation = this._storageLocationDao.GetById(id);
+            StorageLocation? createdLocation = await this._storageLocationDao.GetByIdAsync(id);
             return new Response(
                 StatusCodes.Status201Created,
                 "Storage location created successfully",
@@ -95,7 +95,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to update an existing storage location
-        public Response UpdateLocation(Guid id, StorageLocation updatedStorageLocation)
+        public async Task<Response> UpdateLocationAsync(Guid id, StorageLocation updatedStorageLocation)
         {
             // Validate input
             if (updatedStorageLocation == null)
@@ -108,7 +108,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Check if location exists
-            if (!this._storageLocationDao.Exists(id))
+            if (!await this._storageLocationDao.ExistsAsync(id))
             {
                 return new Response(
                     StatusCodes.Status404NotFound,
@@ -118,12 +118,12 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Update the storage location
-            bool success = this._storageLocationDao.Update(id, updatedStorageLocation);
+            bool success = await this._storageLocationDao.UpdateAsync(id, updatedStorageLocation);
 
             if (success)
             {
                 // Return the updated location
-                StorageLocation? location = this._storageLocationDao.GetById(id);
+                StorageLocation? location = await this._storageLocationDao.GetByIdAsync(id);
                 return new Response(
                     StatusCodes.Status200OK,
                     "Storage location updated successfully",
@@ -139,10 +139,10 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to delete a storage location
-        public Response DeleteLocation(Guid id)
+        public async Task<Response> DeleteLocationAsync(Guid id)
         {
             // Check if location exists
-            if (!this._storageLocationDao.Exists(id))
+            if (!await this._storageLocationDao.ExistsAsync(id))
             {
                 return new Response(
                     StatusCodes.Status404NotFound,
@@ -152,7 +152,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Delete the storage location
-            bool success = this._storageLocationDao.Delete(id);
+            bool success = await this._storageLocationDao.DeleteAsync(id);
 
             if (success)
             {
@@ -171,7 +171,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to find nearby storage locations
-        public Response FindNearbyLocations(double lat, double lng, double radiusKm)
+        public async Task<Response> FindNearbyLocationsAsync(double lat, double lng, double radiusKm)
         {
             // Validate parameters
             if (radiusKm <= 0)
@@ -184,7 +184,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Find nearby locations
-            List<StorageLocation>? nearbyLocations = this._storageLocationDao.FindNearby(lat, lng, radiusKm);
+            List<StorageLocation> nearbyLocations = await this._storageLocationDao.FindNearbyAsync(lat, lng, radiusKm);
 
             if (nearbyLocations == null || nearbyLocations.Count == 0)
             {
@@ -199,10 +199,10 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to find storage locations based on dimensional requirements
-        public Response FindLocationsByDimensions(double requiredLength, double requiredWidth, double requiredHeight)
+        public async Task<Response> FindLocationsByDimensionsAsync(double requiredLength, double requiredWidth, double requiredHeight)
         {
             // Find locations with sufficient dimensions
-            List<StorageLocation>? locations = this._storageLocationDao.FindByDimensions(requiredLength, requiredWidth, requiredHeight);
+            List<StorageLocation> locations = await this._storageLocationDao.FindByDimensionsAsync(requiredLength, requiredWidth, requiredHeight);
 
             if (locations == null || locations.Count == 0)
             {
@@ -217,7 +217,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to find storage locations with sufficient volume capacity
-        public Response FindLocationsWithSufficientCapacity(double requiredVolume)
+        public async Task<Response> FindLocationsWithSufficientCapacityAsync(double requiredVolume)
         {
             // Validate parameters
             if (requiredVolume <= 0)
@@ -230,7 +230,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Find locations with sufficient capacity
-            List<StorageLocation>? locations = this._storageLocationDao.FindWithSufficientCapacity(requiredVolume);
+            List<StorageLocation> locations = await this._storageLocationDao.FindWithSufficientCapacityAsync(requiredVolume);
 
             if (locations == null || locations.Count == 0)
             {
@@ -245,7 +245,7 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to find storage locations with price less than or equal to the specified price
-        public Response FindLocationsByPrice(double price)
+        public async Task<Response> FindLocationsByPriceAsync(double price)
         {
             // Validate parameters
             if (price <= 0)
@@ -258,7 +258,7 @@ namespace StuMoov.Services.StorageLocationService
             }
 
             // Find locations with price less than or equal to the specified price
-            List<StorageLocation>? locations = this._storageLocationDao.FindWithPrice(price);
+            List<StorageLocation> locations = await this._storageLocationDao.FindWithPriceAsync(price);
 
             if (locations == null || locations.Count == 0)
             {
@@ -273,15 +273,15 @@ namespace StuMoov.Services.StorageLocationService
         }
 
         // Method to get the total count of storage locations
-        public int GetLocationCount()
+        public async Task<int> GetLocationCountAsync()
         {
-            return this._storageLocationDao.Count();
+            return await this._storageLocationDao.CountAsync();
         }
 
         // Method to check if a storage location exists by ID
-        public bool LocationExists(Guid id)
+        public async Task<bool> LocationExistsAsync(Guid id)
         {
-            return this._storageLocationDao.Exists(id);
+            return await this._storageLocationDao.ExistsAsync(id);
         }
     }
 }

@@ -1,124 +1,93 @@
 ﻿namespace StuMoov.Dao;
+
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using StuMoov.Db;
 using StuMoov.Models.StorageLocationModel;
 
 public class StorageLocationDao
 {
-    private Dictionary<Guid, StorageLocation> storageLocations;
+    [Required]
+    private readonly AppDbContext _dbContext;
 
-    // Constructor to initialize the database reference with a map
-    public StorageLocationDao()
+    public StorageLocationDao(AppDbContext dbContext)
     {
-        // Initialize the dictionary
-        storageLocations = new Dictionary<Guid, StorageLocation>();
-
-        //// Add some initial mock data
-        //StorageLocation locationA = new StorageLocation(
-        //    Guid.NewGuid(),
-        //    "Storage A",
-        //    "A small storage location",
-        //    -33.860664,
-        //    151.208138,
-        //    10.0,
-        //    5.0,
-        //    3.0,
-        //    150.0,
-        //    120.0
-        //);
-
-        //StorageLocation locationB = new StorageLocation(
-        //    Guid.NewGuid(),
-        //    "Storage B",
-        //    "A medium storage location",
-        //    -33.87664,
-        //    151.218138,
-        //    12.0,
-        //    6.0,
-        //    4.0,
-        //    200.0,
-        //    180.0
-        //);
-
-        //StorageLocation locationC = new StorageLocation(
-        //    Guid.NewGuid(),
-        //    "Storage C",
-        //    "A large storage location",
-        //    -33.870664,
-        //    151.198138,
-        //    15.0,
-        //    8.0,
-        //    5.0,
-        //    600.0,
-        //    450.0
-        //);
-
-        //// Using GUIDs as keys for the dictionary
-        //storageLocations.Add(locationA.Id, locationA);
-        //storageLocations.Add(locationB.Id, locationB);
-        //storageLocations.Add(locationC.Id, locationC);
-
+        _dbContext = dbContext;
     }
 
+    // No need for InitAsync method anymore as we'll use dbContext directly
+
     // Method to retrieve all storage locations
-    public List<StorageLocation>? GetAll()
+    public async Task<List<StorageLocation>> GetAllAsync()
     {
-        return storageLocations.Values.ToList();
+        return await _dbContext.StorageLocations.ToListAsync();
     }
 
     // Get a specific storage location by ID
-    public StorageLocation? GetById(Guid id)
+    public async Task<StorageLocation?> GetByIdAsync(Guid id)
     {
-        if (storageLocations.TryGetValue(id, out var location))
-        {
-            return location;
-        }
-        return null;
+        return await _dbContext.StorageLocations.FindAsync(id);
     }
 
     // Get storage locations by lender's user ID
-    public List<StorageLocation>? GetByUserId(Guid userId)
+    public async Task<List<StorageLocation>> GetByLenderIdAsync(Guid lenderId)
     {
-        return storageLocations.Values
-            .Where(loc => loc.LenderId == userId)
-            .ToList();
+        return await _dbContext.StorageLocations
+            .Where(loc => loc.LenderId == lenderId)
+            .ToListAsync();
     }
 
     // Create a new storage location
-    public Guid Create(StorageLocation storageLocation)
+    public async Task<Guid> CreateAsync(StorageLocation storageLocation)
     {
-        // Generate a new GUID for the location
-        Guid id = Guid.NewGuid();
+        // Add to the database
+        await _dbContext.StorageLocations.AddAsync(storageLocation);
+        await _dbContext.SaveChangesAsync();
 
-        // Add to the dictionary
-        storageLocations.Add(id, storageLocation);
-
-        return id;
+        return storageLocation.Id;
     }
 
     // Update an existing storage location
-    public bool Update(Guid id, StorageLocation updatedStorageLocation)
+    public async Task<bool> UpdateAsync(Guid id, StorageLocation updatedStorageLocation)
     {
-        if (!storageLocations.ContainsKey(id))
+        var existingLocation = await _dbContext.StorageLocations.FindAsync(id);
+        if (existingLocation == null)
         {
             return false;
         }
 
-        storageLocations[id] = updatedStorageLocation;
+        // Detach the existing entity and attach the updated one
+        _dbContext.Entry(existingLocation).State = EntityState.Detached;
+        _dbContext.StorageLocations.Update(updatedStorageLocation);
+        await _dbContext.SaveChangesAsync();
+
         return true;
     }
 
     // Delete a storage location by ID
-    public bool Delete(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
-        return storageLocations.Remove(id);
+        var location = await _dbContext.StorageLocations.FindAsync(id);
+        if (location == null)
+        {
+            return false;
+        }
+
+        _dbContext.StorageLocations.Remove(location);
+        await _dbContext.SaveChangesAsync();
+
+        return true;
     }
 
     // Find storage locations within a certain geographic radius
-    public List<StorageLocation>? FindNearby(double lat, double lng, double radiusKm)
+    public async Task<List<StorageLocation>> FindNearbyAsync(double lat, double lng, double radiusKm)
     {
-        // Implementation of the Haversine formula to calculate distance between two points on Earth
-        List<StorageLocation> nearbyLocations = new List<StorageLocation>();
+        // Get all locations first
+        var allLocations = await _dbContext.StorageLocations.ToListAsync();
 
-        foreach (var location in storageLocations.Values)
+        // Then filter by distance
+        List<StorageLocation> nearbyLocations = new List<StorageLocation>();
+        foreach (var location in allLocations)
         {
             double distance = CalculateDistance(lat, lng, location.Lat, location.Lng);
             if (distance <= radiusKm)
@@ -158,43 +127,48 @@ public class StorageLocationDao
 
     // Find storage locations based on dimensional requirements
     // Use -1 for any dimension that doesn't have a requirement
-    public List<StorageLocation>? FindByDimensions(double requiredLength, double requiredWidth, double requiredHeight)
+    public async Task<List<StorageLocation>> FindByDimensionsAsync(double requiredLength, double requiredWidth, double requiredHeight)
     {
-        return storageLocations.Values
-            .Where(loc =>
-                // Only include dimension in filter if requirement is specified (not -1)
-                (requiredLength == -1 || loc.StorageLength >= requiredLength) &&
-                (requiredWidth == -1 || loc.StorageWidth >= requiredWidth) &&
-                (requiredHeight == -1 || loc.StorageHeight >= requiredHeight)
-            )
-            .ToList();
+        var query = _dbContext.StorageLocations.AsQueryable();
+
+        // Only include dimension in filter if requirement is specified (not -1)
+        if (requiredLength != -1)
+            query = query.Where(loc => loc.StorageLength >= requiredLength);
+
+        if (requiredWidth != -1)
+            query = query.Where(loc => loc.StorageWidth >= requiredWidth);
+
+        if (requiredHeight != -1)
+            query = query.Where(loc => loc.StorageHeight >= requiredHeight);
+
+        return await query.ToListAsync();
     }
 
     // Find storage locations with sufficient volume
-    public List<StorageLocation>? FindWithSufficientCapacity(double requiredVolume)
+    public async Task<List<StorageLocation>> FindWithSufficientCapacityAsync(double requiredVolume)
     {
-        return storageLocations.Values
+        return await _dbContext.StorageLocations
             .Where(loc => loc.StorageVolumeTotal >= requiredVolume)
-            .ToList();
+            .ToListAsync();
     }
 
     // Find storage locations with price less than or equal to the specified price
-    public List<StorageLocation>? FindWithPrice(double price)
+    public async Task<List<StorageLocation>> FindWithPriceAsync(double price)
     {
-        return storageLocations.Values
+        return await _dbContext.StorageLocations
             .Where(loc => loc.Price <= price)
-            .ToList();
+            .ToListAsync();
     }
 
     // Count total number of storage locations
-    public int Count()
+    public async Task<int> CountAsync()
     {
-        return storageLocations.Count;
+        return await _dbContext.StorageLocations.CountAsync();
     }
 
     // Check if a storage location exists by ID
-    public bool Exists(Guid id)
+    public async Task<bool> ExistsAsync(Guid id)
     {
-        return storageLocations.ContainsKey(id);
+        return await _dbContext.StorageLocations.AnyAsync(loc => loc.Id == id);
     }
 }

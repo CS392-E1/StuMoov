@@ -35,11 +35,11 @@ builder.Services.AddCors(options =>
         });
 });
 
-//builder.Services.AddScoped<StorageLocationDao>(sp =>
-//{
-//    var context = sp.GetRequiredService<AppDbContext>();
-//    return new StorageLocationDao(context);
-//});
+builder.Services.AddScoped<StorageLocationDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new StorageLocationDao(context);
+});
 builder.Services.AddScoped<BookingDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
