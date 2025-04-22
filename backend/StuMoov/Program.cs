@@ -45,6 +45,11 @@ builder.Services.AddScoped<BookingDao>(sp =>
     var context = sp.GetRequiredService<AppDbContext>();
     return new BookingDao(context);
 });
+builder.Services.AddScoped<UserDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new UserDao(context);
+});
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {

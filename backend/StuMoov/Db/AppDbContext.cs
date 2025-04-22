@@ -5,6 +5,7 @@ using StuMoov.Models.BookingModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.PaymentModel;
 using StuMoov.Models.UserModel.Enums;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace StuMoov.Db
 {
@@ -31,11 +32,21 @@ namespace StuMoov.Db
 
             modelBuilder.Ignore<Supabase.Postgrest.ClientOptions>();
 
+            var userRoleConverter = new ValueConverter<UserRole, string>(
+                v => v.ToString(),        // Convert enum to string when saving
+                v => (UserRole)Enum.Parse(typeof(UserRole), v)  // Convert string to enum when reading
+            );
+
+            // Apply the converter to the Role property
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasConversion(userRoleConverter);
+
             // Configure TPH inheritance
             modelBuilder.Entity<User>()
-                .HasDiscriminator<string>("user_role")
-                .HasValue<Renter>(UserRole.RENTER.ToString())
-                .HasValue<Lender>(UserRole.LENDER.ToString());
+                .HasDiscriminator<UserRole>("Role")
+                .HasValue<Renter>(UserRole.RENTER)
+                .HasValue<Lender>(UserRole.LENDER);
 
             // Configure primary keys
             modelBuilder.Entity<User>().HasKey(u => u.Id);

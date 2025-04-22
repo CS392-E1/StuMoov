@@ -12,8 +12,6 @@ namespace StuMoov.Models.UserModel
         public Guid? StripeCustomerInfoId { get; private set; }
         [Reference(typeof(StripeCustomer))]
         public StripeCustomer? StripeCustomerInfo { get; private set; } // Stripe customer info for payment processing
-        [Column("user_role")]
-        public UserRole Role { get; private set; }
 
 
         public Renter(Guid id, string displayName, string email, string firebaseUid) : base(firebaseUid, email, displayName)

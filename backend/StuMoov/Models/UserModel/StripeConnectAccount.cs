@@ -19,8 +19,8 @@ namespace StuMoov.Models.UserModel
         [Required]
         [Column("user_id")]
         public Guid UserId { get; private set; }
-        [Reference(typeof(User), ReferenceAttribute.JoinType.Inner, true, "user_id")]
-        public User? User { get; private set; } // fk to User table
+        [Reference(typeof(Lender), ReferenceAttribute.JoinType.Inner, true, "user_id")]
+        public Lender? User { get; private set; } // fk to User table
         [Column("stripe_connect_account_id")]
         [Required]
         public string StripeConnectAccountId { get; private set; }

@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models;
-using StuMoov.Models.StorageLocationModel;
+using StuMoov.Dao;
 using StuMoov.Models.UserModel;
-using StuMoov.Services.StorageLocationService;
 using StuMoov.Services.UserService;
 
 namespace StuMoov.Controllers
@@ -13,88 +12,88 @@ namespace StuMoov.Controllers
     {
         private readonly UserService _userService;
 
-        public UserController(UserService userService)
+        public UserController(UserDao userDao)
         {
-            _userService = userService;
+            _userService = new UserService(userDao);
         }
 
         // GET: api/user
         [HttpGet]
-        public ActionResult GetAllUsers()
+        public async Task<ActionResult> GetAllUsers()
         {
-            Response response = _userService.GetAllUsers();
+            Response response = await _userService.GetAllUsersAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/user/{id}
         [HttpGet("{id}")]
-        public ActionResult GetUserById(Guid id)
+        public async Task<ActionResult> GetUserById(Guid id)
         {
-            Response response = _userService.GetUserById(id);
+            Response response = await _userService.GetUserByIdAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/user/username/{username}
         [HttpGet("username/{username}")]
-        public ActionResult GetUserByUsername(string username)
+        public async Task<ActionResult> GetUserByUsername(string username)
         {
-            Response response = _userService.GetUserByUsername(username);
+            Response response = await _userService.GetUserByUsernameAsync(username);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/user/email/{email}
         [HttpGet("email/{email}")]
-        public ActionResult GetUserByEmail(string email)
+        public async Task<ActionResult> GetUserByEmail(string email)
         {
-            Response response = _userService.GetUserByEmail(email);
+            Response response = await _userService.GetUserByEmailAsync(email);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/user/renters
         [HttpGet("renters")]
-        public ActionResult GetAllRenters()
+        public async Task<ActionResult> GetAllRenters()
         {
-            Response response = _userService.GetAllRenters();
+            Response response = await _userService.GetAllRentersAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/user/lenders
         [HttpGet("lenders")]
-        public ActionResult GetAllLenders()
+        public async Task<ActionResult> GetAllLenders()
         {
-            Response response = _userService.GetAllLenders();
+            Response response = await _userService.GetAllLendersAsync();
             return StatusCode(response.Status, response);
         }
 
         // POST: api/user/register/renter
         [HttpPost("register/renter")]
-        public ActionResult RegisterRenter([FromBody] Renter renter)
+        public async Task<ActionResult> RegisterRenter([FromBody] Renter renter)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Response response = _userService.RegisterUser(renter);
+            Response response = await _userService.RegisterUserAsync(renter);
             return StatusCode(response.Status, response);
         }
 
         // POST: api/user/register/lender
         [HttpPost("register/lender")]
-        public ActionResult RegisterLender([FromBody] Lender lender)
+        public async Task<ActionResult> RegisterLender([FromBody] Lender lender)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Response response = _userService.RegisterUser(lender);
+            Response response = await _userService.RegisterUserAsync(lender);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/user/{id}
         [HttpPut("{id}")]
-        public ActionResult UpdateUser(Guid id, [FromBody] User user)
+        public async Task<ActionResult> UpdateUser(Guid id, [FromBody] User user)
         {
             if (!ModelState.IsValid)
             {
@@ -104,16 +103,50 @@ namespace StuMoov.Controllers
                     ModelState
                 ));
             }
-            Response updateResponse = _userService.UpdateUser(user);
+
+            if (id != user.Id)
+            {
+                return BadRequest(new Response(
+                    StatusCodes.Status400BadRequest,
+                    "ID in URL does not match ID in request body",
+                    null
+                ));
+            }
+
+            Response updateResponse = await _userService.UpdateUserAsync(user);
             return StatusCode(updateResponse.Status, updateResponse);
         }
 
         // DELETE: api/user/{id}
         [HttpDelete("{id}")]
-        public ActionResult DeleteUser(Guid id)
+        public async Task<ActionResult> DeleteUser(Guid id)
         {
-            Response response = _userService.DeleteUser(id);
+            Response response = await _userService.DeleteUserAsync(id);
             return StatusCode(response.Status, response);
+        }
+
+        // GET: api/user/count
+        [HttpGet("count")]
+        public async Task<ActionResult> GetUserCount()
+        {
+            Response response = await _userService.GetUserCountAsync();
+            return StatusCode(response.Status, response);
+        }
+
+        // GET: api/user/renter/{id}/stripe
+        [HttpGet("renter/{id}/stripe")]
+        public async Task<ActionResult> GetRenterWithStripeInfo(Guid id)
+        {
+            Response response = await _userService.GetRenterWithStripeInfoAsync(id);
+            return StatusCode(response.Status, response);
+        }
+
+        // GET: api/user/exists/{id}
+        [HttpGet("exists/{id}")]
+        public async Task<ActionResult<bool>> UserExists(Guid id)
+        {
+            bool exists = await _userService.UserExistsAsync(id);
+            return Ok(exists);
         }
     }
 }

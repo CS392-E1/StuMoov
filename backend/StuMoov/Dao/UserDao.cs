@@ -1,120 +1,142 @@
-﻿using StuMoov.Models.UserModel;
+﻿namespace StuMoov.Dao;
 
-namespace StuMoov.Dao
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using StuMoov.Db;
+using StuMoov.Models.UserModel;
+
+public class UserDao
 {
-    public class UserDao
+    [Required]
+    private readonly AppDbContext _dbContext;
+
+    public UserDao(AppDbContext dbContext)
     {
-        private Dictionary<Guid, User> Users;
+        _dbContext = dbContext;
+    }
 
-        public UserDao() { 
-            Users = new Dictionary<Guid, User>();
+    // Get user by ID
+    public async Task<User?> GetUserByIdAsync(Guid id)
+    {
+        return await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
 
-            //// Mock Renter
-            //User renter1 = new Renter(
-            //    Guid.NewGuid(),                      // FirebaseUid
-            //    "Alice",                             // FirstName
-            //    "Smith",                             // LastName
-            //    "alice_renter",                      // Username
-            //    "alice@example.com",                 // Email
-            //    "hashed-password-alice"              // PasswordHash
-            //);
+    // Get user by username
+    public async Task<User?> GetUserByUsernameAsync(string username)
+    {
+        return await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase));
+    }
 
-            //// Mock Lender
-            //User lender = new Lender(
-            //    Guid.NewGuid(),                      // FirebaseUid
-            //    "John",                              // FirstName
-            //    "Doe",                               // LastName
-            //    "john_lender",                       // Username
-            //    "john@example.com",                  // Email
-            //    "hashed-password-john"               // PasswordHash
-            //);
+    // Get user by email
+    public async Task<User?> GetUserByEmailAsync(string email)
+    {
+        return await _dbContext.Users
+               .Where(u => u.Email.ToLower() == email.ToLower())   //Don't Change to Equals
+               .FirstOrDefaultAsync();
+    }
 
-            //User renter2 = new Renter(
-            //    Guid.NewGuid(),                      // FirebaseUid
-            //    "Ludwig",                             // FirstName
-            //    "Jake",                             // LastName
-            //    "LDVG_renter",                      // Username
-            //    "ldvg@example.com",                 // Email
-            //    "hashed-password-ldvg"              // PasswordHash
-            //);
-            //Users[renter1.Id] = renter1;
-            //Users[renter2.Id] = renter2;
-            //Users[lender.Id] = lender;
-        }
-
-        public User? GetUserById(Guid id)
+    // Add new user
+    public async Task<User?> AddUserAsync(User user)
+    {
+        if (user == null)
         {
-            if (Users.TryGetValue(id, out var user))
-            {
-                return user;
-            }
             return null;
         }
 
-        // Get user by username
-        public User? GetUserByUsername(string username)
+        // Check if email already exists
+        var existingUser = await GetUserByEmailAsync(user.Email);
+        if (existingUser != null)
         {
-            return Users.Values.FirstOrDefault(u => u.DisplayName.Equals(username, StringComparison.OrdinalIgnoreCase));
+            return null;
         }
 
-        // Get user by email
-        public User? GetUserByEmail(string email)
+        await _dbContext.Users.AddAsync(user);
+        await _dbContext.SaveChangesAsync();
+
+        return user;
+    }
+
+    // Update existing user
+    public async Task<User?> UpdateUserAsync(User user)
+    {
+        if (user == null)
         {
-            return Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            return null;
         }
 
-        // Add new user
-        public User? AddUser(User user)
+        var existingUser = await _dbContext.Users.FindAsync(user.Id);
+        if (existingUser == null)
         {
-            if (user == null || Users.ContainsKey(user.Id))
-            {
-                return null;
-            }
-
-            // Check if email already exists
-            if (GetUserByEmail(user.Email) != null)
-            {
-                return null;
-            }
-
-            Users[user.Id] = user;
-            return user;
+            return null;
         }
 
-        // Update existing user
-        public User? UpdateUser(User user)
-        {
-            if (user == null || !Users.ContainsKey(user.Id))
-            {
-                return null;
-            }
+        _dbContext.Entry(existingUser).CurrentValues.SetValues(user);
+        await _dbContext.SaveChangesAsync();
 
-            Users[user.Id] = user;
-            return user;
+        return user;
+    }
+
+    // Delete user
+    public async Task<bool> DeleteUserAsync(Guid id)
+    {
+        var user = await _dbContext.Users.FindAsync(id);
+        if (user == null)
+        {
+            return false;
         }
 
-        // Delete user
-        public bool DeleteUser(Guid id)
-        {
-            return Users.Remove(id);
-        }
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync();
 
-        // Get all users
-        public List<User> GetAllUsers()
-        {
-            return Users.Values.ToList();
-        }
+        return true;
+    }
 
-        // Get all renters
-        public List<User> GetAllRenters()
-        {
-            return Users.Values.Where(u => u is Renter).ToList();
-        }
+    // Get all users
+    public async Task<List<User>> GetAllUsersAsync()
+    {
+        return await _dbContext.Users.ToListAsync();
+    }
 
-        // Get all lenders
-        public List<User> GetAllLenders()
-        {
-            return Users.Values.Where(u => u is Lender).ToList();
-        }
+    // Get all renters
+    public async Task<List<User>> GetAllRentersAsync()
+    {
+        return await _dbContext.Users
+            .Where(u => u is Renter)
+            .ToListAsync();
+    }
+
+    // Get all lenders
+    public async Task<List<User>> GetAllLendersAsync()
+    {
+        return await _dbContext.Users
+            .Where(u => u is Lender)
+            .ToListAsync();
+    }
+
+    // Check if a user exists by ID
+    public async Task<bool> ExistsAsync(Guid id)
+    {
+        return await _dbContext.Users.AnyAsync(u => u.Id == id);
+    }
+
+    // Count total number of users
+    public async Task<int> CountAsync()
+    {
+        return await _dbContext.Users.CountAsync();
+    }
+
+    // Get a renter with their stripe customer info
+    public async Task<Renter?> GetRenterWithStripeInfoAsync(Guid id)
+    {
+        return await _dbContext.Users
+            .OfType<Renter>()
+            .Include(r => r.StripeCustomerInfo)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 }
