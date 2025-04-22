@@ -21,8 +21,8 @@ namespace StuMoov.Models.UserModel
         // This allows us to access the User table data from the StripeCustomer table
         // by simply doing stripeCustomer.User
         // ref: https://supabase-community.github.io/supabase-csharp/api/Supabase.Postgrest.Attributes.ReferenceAttribute.html
-        [Reference(typeof(User), ReferenceAttribute.JoinType.Inner, true, "user_id")]
-        public User? User { get; private set; } // fk to User table
+        [Reference(typeof(Renter), ReferenceAttribute.JoinType.Inner, true, "user_id")]
+        public Renter? User { get; private set; } // fk to User table
         [Column("stripe_customer_id")]
         public string? StripeCustomerId { get; private set; }
 

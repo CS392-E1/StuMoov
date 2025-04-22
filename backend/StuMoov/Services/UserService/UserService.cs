@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.UserModel;
@@ -16,16 +20,16 @@ namespace StuMoov.Services.UserService
         }
 
         // Get all users
-        public Response GetAllUsers()
+        public async Task<Response> GetAllUsersAsync()
         {
-            List<User> users = _userDao.GetAllUsers();
+            List<User> users = await _userDao.GetAllUsersAsync();
             return new Response(StatusCodes.Status200OK, "OK", users);
         }
 
         // Get user by ID
-        public Response GetUserById(Guid id)
+        public async Task<Response> GetUserByIdAsync(Guid id)
         {
-            User? user = _userDao.GetUserById(id);
+            User? user = await _userDao.GetUserByIdAsync(id);
 
             if (user == null)
             {
@@ -44,9 +48,9 @@ namespace StuMoov.Services.UserService
         }
 
         // Get user by username
-        public Response GetUserByUsername(string username)
+        public async Task<Response> GetUserByUsernameAsync(string username)
         {
-            User? user = _userDao.GetUserByUsername(username);
+            User? user = await _userDao.GetUserByUsernameAsync(username);
 
             if (user == null)
             {
@@ -65,9 +69,9 @@ namespace StuMoov.Services.UserService
         }
 
         // Get user by email
-        public Response GetUserByEmail(string email)
+        public async Task<Response> GetUserByEmailAsync(string email)
         {
-            User? user = _userDao.GetUserByEmail(email);
+            User? user = await _userDao.GetUserByEmailAsync(email);
 
             if (user == null)
             {
@@ -86,7 +90,7 @@ namespace StuMoov.Services.UserService
         }
 
         // Register a new user
-        public Response RegisterUser(User user)
+        public async Task<Response> RegisterUserAsync(User user)
         {
             // Check if user is null
             if (user == null)
@@ -98,27 +102,8 @@ namespace StuMoov.Services.UserService
                 );
             }
 
-            // Check if username or email already exists
-            if (_userDao.GetUserByUsername(user.Username) != null)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Username already exists",
-                    null
-                );
-            }
-
-            if (_userDao.GetUserByEmail(user.Email) != null)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Email already exists",
-                    null
-                );
-            }
-
             // Add user to database
-            User? registeredUser = _userDao.AddUser(user);
+            User? registeredUser = await _userDao.AddUserAsync(user);
 
             if (registeredUser == null)
             {
@@ -137,7 +122,7 @@ namespace StuMoov.Services.UserService
         }
 
         // Update existing user
-        public Response UpdateUser(User user)
+        public async Task<Response> UpdateUserAsync(User user)
         {
             // Check if user is null
             if (user == null)
@@ -150,7 +135,7 @@ namespace StuMoov.Services.UserService
             }
 
             // Check if user exists
-            User? existingUser = _userDao.GetUserById(user.Id);
+            User? existingUser = await _userDao.GetUserByIdAsync(user.Id);
             if (existingUser == null)
             {
                 return new Response(
@@ -160,19 +145,8 @@ namespace StuMoov.Services.UserService
                 );
             }
 
-            // Check if new username conflicts with another user
-            User? userWithSameUsername = _userDao.GetUserByUsername(user.Username);
-            if (userWithSameUsername != null && userWithSameUsername.Id != user.Id)
-            {
-                return new Response(
-                    StatusCodes.Status409Conflict,
-                    "Username already exists",
-                    null
-                );
-            }
-
             // Check if new email conflicts with another user
-            User? userWithSameEmail = _userDao.GetUserByEmail(user.Email);
+            User? userWithSameEmail = await _userDao.GetUserByEmailAsync(user.Email);
             if (userWithSameEmail != null && userWithSameEmail.Id != user.Id)
             {
                 return new Response(
@@ -183,7 +157,7 @@ namespace StuMoov.Services.UserService
             }
 
             // Update user
-            User? updatedUser = _userDao.UpdateUser(user);
+            User? updatedUser = await _userDao.UpdateUserAsync(user);
 
             if (updatedUser == null)
             {
@@ -201,12 +175,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-
         // Delete user
-        public Response DeleteUser(Guid id)
+        public async Task<Response> DeleteUserAsync(Guid id)
         {
             // Check if user exists
-            User? existingUser = _userDao.GetUserById(id);
+            User? existingUser = await _userDao.GetUserByIdAsync(id);
             if (existingUser == null)
             {
                 return new Response(
@@ -217,7 +190,7 @@ namespace StuMoov.Services.UserService
             }
 
             // Delete user
-            bool deleted = _userDao.DeleteUser(id);
+            bool deleted = await _userDao.DeleteUserAsync(id);
 
             if (!deleted)
             {
@@ -236,18 +209,56 @@ namespace StuMoov.Services.UserService
         }
 
         // Get all renters
-        public Response GetAllRenters()
+        public async Task<Response> GetAllRentersAsync()
         {
-            List<User> renters = _userDao.GetAllRenters();
+            List<User> renters = await _userDao.GetAllRentersAsync();
             return new Response(StatusCodes.Status200OK, "OK", renters);
         }
 
         // Get all lenders
-        public Response GetAllLenders()
+        public async Task<Response> GetAllLendersAsync()
         {
-            List<User> lenders = _userDao.GetAllLenders();
+            List<User> lenders = await _userDao.GetAllLendersAsync();
             return new Response(StatusCodes.Status200OK, "OK", lenders);
         }
 
+        // Get renter with stripe information
+        public async Task<Response> GetRenterWithStripeInfoAsync(Guid id)
+        {
+            Renter? renter = await _userDao.GetRenterWithStripeInfoAsync(id);
+
+            if (renter == null)
+            {
+                return new Response(
+                    StatusCodes.Status404NotFound,
+                    "Renter not found",
+                    null
+                );
+            }
+
+            return new Response(
+                StatusCodes.Status200OK,
+                "OK",
+                new List<User> { renter }
+            );
+        }
+
+        // Get user count
+        public async Task<Response> GetUserCountAsync()
+        {
+            int count = await _userDao.CountAsync();
+
+            return new Response(
+                StatusCodes.Status200OK,
+                "OK",
+                count
+            );
+        }
+
+        // Check if user exists
+        public async Task<bool> UserExistsAsync(Guid id)
+        {
+            return await _userDao.ExistsAsync(id);
+        }
     }
 }
