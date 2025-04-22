@@ -1,6 +1,3 @@
-﻿using StuMoov.Models.BookingModel;
-using StuMoov.Models.ChatModel;
-using StuMoov.Models.UserModel.Enums;
 using Supabase.Postgrest.Attributes;
 
 namespace StuMoov.Models.UserModel
