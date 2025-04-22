@@ -31,7 +31,7 @@ namespace StuMoov.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Response>> GetStorageLocationById(Guid id)
         {
-            Response response = _storageLocationService.GetLocationById(id);
+            Response response = await _storageLocationService.GetLocationByIdAsync(id);
             return StatusCode(response.Status, response);
         }
 
@@ -39,7 +39,7 @@ namespace StuMoov.Controllers
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<Response>> GetStorageLocationsByUserId(Guid userId)
         {
-            Response response = _storageLocationService.GetLocationsByUserId(userId);
+            Response response = await _storageLocationService.GetLocationsByUserIdAsync(userId);
             return StatusCode(response.Status, response);
         }
 
@@ -52,7 +52,7 @@ namespace StuMoov.Controllers
                 return BadRequest(ModelState);
             }
 
-            Response response = _storageLocationService.CreateLocation(storageLocation);
+            Response response = await _storageLocationService.CreateLocationAsync(storageLocation);
             return StatusCode(response.Status, response);
         }
 
@@ -65,7 +65,7 @@ namespace StuMoov.Controllers
                 return BadRequest(ModelState);
             }
 
-            Response response = _storageLocationService.UpdateLocation(id, storageLocation);
+            Response response = await _storageLocationService.UpdateLocationAsync(id, storageLocation);
             return StatusCode(response.Status, response);
         }
 
@@ -73,7 +73,7 @@ namespace StuMoov.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Response>> DeleteStorageLocation(Guid id)
         {
-            Response response = _storageLocationService.DeleteLocation(id);
+            Response response = await _storageLocationService.DeleteLocationAsync(id);
             return StatusCode(response.Status, response);
         }
 
@@ -84,7 +84,7 @@ namespace StuMoov.Controllers
             [FromQuery] double lng,
             [FromQuery] double radiusKm)
         {
-            Response response = _storageLocationService.FindNearbyLocations(lat, lng, radiusKm);
+            Response response = await _storageLocationService.FindNearbyLocationsAsync(lat, lng, radiusKm);
             return StatusCode(response.Status, response);
         }
 
@@ -95,7 +95,7 @@ namespace StuMoov.Controllers
             [FromQuery] double width = -1,
             [FromQuery] double height = -1)
         {
-            Response response = _storageLocationService.FindLocationsByDimensions(length, width, height);
+            Response response = await _storageLocationService.FindLocationsByDimensionsAsync(length, width, height);
             return StatusCode(response.Status, response);
         }
 
@@ -103,7 +103,7 @@ namespace StuMoov.Controllers
         [HttpGet("capacity")]
         public async Task<ActionResult<Response>> FindLocationsWithSufficientCapacity([FromQuery] double volume)
         {
-            Response response = _storageLocationService.FindLocationsWithSufficientCapacity(volume);
+            Response response = await _storageLocationService.FindLocationsWithSufficientCapacityAsync(volume);
             return StatusCode(response.Status, response);
         }
 
@@ -111,7 +111,7 @@ namespace StuMoov.Controllers
         [HttpGet("price")]
         public async Task<ActionResult<Response>> FindLocationsByPrice([FromQuery] double maxPrice)
         {
-            Response response = _storageLocationService.FindLocationsByPrice(maxPrice);
+            Response response = await _storageLocationService.FindLocationsByPriceAsync(maxPrice);
             return StatusCode(response.Status, response);
         }
 
