@@ -1,4 +1,4 @@
-﻿namespace StuMoov.Dao;
+namespace StuMoov.Dao;
 
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;

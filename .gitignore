@@ -121,6 +121,7 @@ appsettings.local.json
 
 # Environment variables
 .env
+firebase-credentials.json
 
 # React Router
 .react-router/

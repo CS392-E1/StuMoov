@@ -18,6 +18,10 @@ namespace StuMoov.Models.UserModel
         [Reference(typeof(StripeConnectAccount))]
         public StripeConnectAccount? StripeConnectInfo { get; private set; }
 
+        public Lender() : base()
+        {
+        }
+
         public Lender(Guid id, string displayName, string email, string firebaseUid) : base(firebaseUid, email, displayName)
         {
             Id = id;

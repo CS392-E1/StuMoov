@@ -13,6 +13,9 @@ namespace StuMoov.Models.UserModel
         [Reference(typeof(StripeCustomer))]
         public StripeCustomer? StripeCustomerInfo { get; private set; } // Stripe customer info for payment processing
 
+        public Renter() : base()
+        {
+        }
 
         public Renter(Guid id, string displayName, string email, string firebaseUid) : base(firebaseUid, email, displayName)
         {
