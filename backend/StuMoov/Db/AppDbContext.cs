@@ -6,6 +6,7 @@ using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.PaymentModel;
 using StuMoov.Models.UserModel.Enums;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using StuMoov.Models.MessageModel;
 
 namespace StuMoov.Db
 {
@@ -25,6 +26,7 @@ namespace StuMoov.Db
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<StorageLocation> StorageLocations { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

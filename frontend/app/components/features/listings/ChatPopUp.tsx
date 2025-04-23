@@ -3,14 +3,14 @@ import { useState, useEffect } from "react";
 
 interface Message {
   id?: string;
-  sender: string;
-  receiver: string;
+  senderId: string;
+  recipientId: string;
   content: string;
-  timestamp?: string;
+  sentAt?: string;
 }
 
 interface ChatPopupProps {
-  receiver: string;
+  receiver: string; // lister's Supabase UUID
   onClose: () => void;
 }
 
@@ -18,16 +18,21 @@ export const ChatPopup = ({ receiver, onClose }: ChatPopupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
+  // 👇 renter hardcoded for now
+  const senderId = "11111111-2222-3333-4444-555555555555";
+
   const fetchMessages = async () => {
-    const res = await axios.get(`http://localhost:5004/api/message/${receiver}`);
-    setMessages(res.data);
+    const res = await axios.get(
+      `http://localhost:5004/api/messages?user1=${senderId}&user2=${receiver}`
+    );
+    setMessages(res.data.data); // backend returns { data: [...] }
   };
 
   const sendMessage = async () => {
     if (newMessage.trim() === "") return;
-    await axios.post("http://localhost:5004/api/message", {
-      sender: "RenterUser", // hardcoded for now — ideally use auth
-      receiver: receiver,
+    await axios.post("http://localhost:5004/api/messages", {
+      senderId,
+      recipientId: receiver,
       content: newMessage,
     });
     setNewMessage("");
@@ -40,11 +45,12 @@ export const ChatPopup = ({ receiver, onClose }: ChatPopupProps) => {
 
   return (
     <div className="absolute top-24 right-4 bg-white p-4 rounded shadow-lg w-80 z-50">
-      <h2 className="font-semibold mb-2">Chat with {receiver}</h2>
+      <h2 className="font-semibold mb-2">Chat</h2>
       <div className="border h-48 overflow-y-auto p-2 mb-2 rounded">
         {messages.map((msg) => (
           <div key={msg.id} className="mb-1">
-            <strong>{msg.sender}:</strong> {msg.content}
+            <strong>{msg.senderId === senderId ? "You" : "Lister"}:</strong>{" "}
+            {msg.content}
           </div>
         ))}
       </div>

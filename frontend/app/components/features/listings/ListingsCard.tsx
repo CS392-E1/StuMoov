@@ -21,11 +21,13 @@ export function ListingsCard({ listing, onListingClick }: ListingsCardProps) {
           </div>
         </div>
         <div className="flex items-center">
-          <img
-            src={listing.imageUrl}
-            alt={listing.name}
-            className="w-24 h-24 object-cover rounded"
-          />
+          {listing.imageUrl && (
+            <img
+              src={listing.imageUrl}
+              alt={listing.name}
+              className="w-24 h-24 object-cover rounded"
+            />
+          )}
         </div>
       </div>
     </div>
