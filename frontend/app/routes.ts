@@ -12,5 +12,6 @@ export default [
     route("register", "./pages/auth/Register.tsx"),
 
     route("listings", "./pages/listings/Listings.tsx"),
+    route("add-listing", "./pages/listings/AddListing.tsx"), 
   ]),
 ] satisfies RouteConfig;
