@@ -5,8 +5,8 @@ import {
 } from "@/components/features/listings/GoogleMaps";
 import { ListingsPanel } from "@/components/features/listings/ListingsPanel";
 import { SearchBar } from "@/components/features/listings/SearchBar";
-import { AddListing } from "@/components/features/listings/AddListing";
 import { StorageLocation } from "@/types/storage";
+import axios from "axios";
 
 //Mock data
 const mockLocations: StorageLocation[] = [
@@ -27,10 +27,11 @@ export default function Listings() {
   const [locations, setLocations] = useState<StorageLocation[]>(mockLocations);
 
   useEffect(() => {
-    fetch("http://localhost:5004/api/StorageLocation")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data && data.data.length > 0) setLocations(data.data);
+    axios.get("http://localhost:5004/api/StorageLocation")
+      .then((res) => {
+        if (res.data?.data && res.data.data.length > 0) {
+          setLocations(res.data.data);
+        }
       })
       .catch((err) => {
         console.error("Failed to fetch locations", err);
@@ -47,9 +48,6 @@ export default function Listings() {
     console.log("Searching for:", query);
   };
 
-  const handleAddLocation = (newLocation: StorageLocation) => {
-    setLocations([...locations, newLocation]);
-  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-150px)] w-full">
@@ -59,15 +57,12 @@ export default function Listings() {
           <ListingsPanel
             locations={locations}
             onListingClick={handleListingClick}
-          />
+            />
+            </div>
+            <div className="w-2/3 relative">
+              <GoogleMaps ref={mapRef} locations={locations} />
+            </div>
+          </div>
         </div>
-
-        {/* map + AddListing component */}
-        <div className="w-2/3 relative">
-          <GoogleMaps ref={mapRef} locations={locations} />
-          <AddListing onAddLocation={handleAddLocation} />
-        </div>
-      </div>
-    </div>
-  );
-}
+      );
+    }

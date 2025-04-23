@@ -4,7 +4,7 @@ using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
 namespace StuMoov.Models.StorageLocationModel;
-[Table("storage_locations")]
+[Table("StorageLocations")]
 public class StorageLocation : BaseModel
 {
     [Key]

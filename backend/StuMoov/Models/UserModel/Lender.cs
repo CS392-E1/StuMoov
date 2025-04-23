@@ -1,4 +1,4 @@
-﻿using StuMoov.Models.ChatModel;
+using StuMoov.Models.ChatModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.UserModel.Enums;
 using Supabase.Postgrest.Attributes;
@@ -13,10 +13,10 @@ namespace StuMoov.Models.UserModel
         //private Dictionary<Guid, Booking>? RentalBookings { get; set; }
         ////private Dictionary<Guid, BankInfo>? PayoutInfos { get; set; };  //Need to design PaymentInfo Class
         //private Dictionary<Guid, ChatSession>? ChatSessions { get; set; }
+        [Column("StripeConnectInfoId")]
+        public Guid? StripeConnectInfoId { get; private set; }
         [Reference(typeof(StripeConnectAccount))]
         public StripeConnectAccount? StripeConnectInfo { get; private set; }
-        [Column("user_role")]
-        public UserRole Role { get; private set; }
 
         public Lender() : base()
         {

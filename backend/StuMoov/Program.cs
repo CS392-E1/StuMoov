@@ -43,7 +43,6 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Firebase
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromFile("firebase-credentials.json")
@@ -91,6 +90,29 @@ builder.Services.AddControllers()
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
       );
   });
+
+builder.Services.AddScoped<StorageLocationDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new StorageLocationDao(context);
+});
+builder.Services.AddScoped<BookingDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new BookingDao(context);
+});
+builder.Services.AddScoped<UserDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new UserDao(context);
+});
+builder.Services.AddControllers()
+    .AddNewtonsoftJson(options =>
+    {
+        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        // Optional: use CamelCase
+        // options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+    });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

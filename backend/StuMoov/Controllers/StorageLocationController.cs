@@ -1,13 +1,13 @@
-﻿
-using StuMoov.Dao;
+﻿using StuMoov.Dao;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Services.StorageLocationService;
 using Microsoft.AspNetCore.Mvc;
+using StuMoov.Models;
 
 namespace StuMoov.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/storage")]
     public class StorageLocationController : ControllerBase
     {
         private readonly StorageLocationService _storageLocationService;
@@ -20,115 +20,114 @@ namespace StuMoov.Controllers
         }
 
         // GET: api/StorageLocation
-        // Update the method to handle the asynchronous nature of the service call
         [HttpGet]
-        public async Task<ActionResult<StorageLocationResponse>> GetAllStorageLocations()
+        public async Task<ActionResult<Response>> GetAllStorageLocations()
         {
-            StorageLocationResponse response = await _storageLocationService.GetAllLocations();
+            Response response = await _storageLocationService.GetAllLocationsAsync();
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/{id}
         [HttpGet("{id}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationById(Guid id)
+        public async Task<ActionResult<Response>> GetStorageLocationById(Guid id)
         {
-            StorageLocationResponse response = _storageLocationService.GetLocationById(id);
+            Response response = await _storageLocationService.GetLocationByIdAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/user/{userId}
         [HttpGet("user/{userId}")]
-        public ActionResult<StorageLocationResponse> GetStorageLocationsByUserId(Guid userId)
+        public async Task<ActionResult<Response>> GetStorageLocationsByUserId(Guid userId)
         {
-            StorageLocationResponse response = _storageLocationService.GetLocationsByUserId(userId);
+            Response response = await _storageLocationService.GetLocationsByUserIdAsync(userId);
             return StatusCode(response.Status, response);
         }
 
         // POST: api/StorageLocation
         [HttpPost]
-        public ActionResult<StorageLocationResponse> CreateStorageLocation([FromBody] StorageLocation storageLocation)
+        public async Task<ActionResult<Response>> CreateStorageLocation([FromBody] StorageLocation storageLocation)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            StorageLocationResponse response = _storageLocationService.CreateLocation(storageLocation);
+            Response response = await _storageLocationService.CreateLocationAsync(storageLocation);
             return StatusCode(response.Status, response);
         }
 
         // PUT: api/StorageLocation/{id}
         [HttpPut("{id}")]
-        public ActionResult<StorageLocationResponse> UpdateStorageLocation(Guid id, [FromBody] StorageLocation storageLocation)
+        public async Task<ActionResult<Response>> UpdateStorageLocation(Guid id, [FromBody] StorageLocation storageLocation)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            StorageLocationResponse response = _storageLocationService.UpdateLocation(id, storageLocation);
+            Response response = await _storageLocationService.UpdateLocationAsync(id, storageLocation);
             return StatusCode(response.Status, response);
         }
 
         // DELETE: api/StorageLocation/{id}
         [HttpDelete("{id}")]
-        public ActionResult<StorageLocationResponse> DeleteStorageLocation(Guid id)
+        public async Task<ActionResult<Response>> DeleteStorageLocation(Guid id)
         {
-            StorageLocationResponse response = _storageLocationService.DeleteLocation(id);
+            Response response = await _storageLocationService.DeleteLocationAsync(id);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/nearby
         [HttpGet("nearby")]
-        public ActionResult<StorageLocationResponse> FindNearbyLocations(
+        public async Task<ActionResult<Response>> FindNearbyLocations(
             [FromQuery] double lat,
             [FromQuery] double lng,
             [FromQuery] double radiusKm)
         {
-            StorageLocationResponse response = _storageLocationService.FindNearbyLocations(lat, lng, radiusKm);
+            Response response = await _storageLocationService.FindNearbyLocationsAsync(lat, lng, radiusKm);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/dimensions
         [HttpGet("dimensions")]
-        public ActionResult<StorageLocationResponse> FindLocationsByDimensions(
+        public async Task<ActionResult<Response>> FindLocationsByDimensions(
             [FromQuery] double length = -1,
             [FromQuery] double width = -1,
             [FromQuery] double height = -1)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsByDimensions(length, width, height);
+            Response response = await _storageLocationService.FindLocationsByDimensionsAsync(length, width, height);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/capacity
         [HttpGet("capacity")]
-        public ActionResult<StorageLocationResponse> FindLocationsWithSufficientCapacity([FromQuery] double volume)
+        public async Task<ActionResult<Response>> FindLocationsWithSufficientCapacity([FromQuery] double volume)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsWithSufficientCapacity(volume);
+            Response response = await _storageLocationService.FindLocationsWithSufficientCapacityAsync(volume);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/price
         [HttpGet("price")]
-        public ActionResult<StorageLocationResponse> FindLocationsByPrice([FromQuery] double maxPrice)
+        public async Task<ActionResult<Response>> FindLocationsByPrice([FromQuery] double maxPrice)
         {
-            StorageLocationResponse response = _storageLocationService.FindLocationsByPrice(maxPrice);
+            Response response = await _storageLocationService.FindLocationsByPriceAsync(maxPrice);
             return StatusCode(response.Status, response);
         }
 
         // GET: api/StorageLocation/count
         [HttpGet("count")]
-        public ActionResult<int> GetLocationCount()
+        public async Task<ActionResult<int>> GetLocationCount()
         {
-            int count = _storageLocationService.GetLocationCount();
+            int count = await _storageLocationService.GetLocationCountAsync();
             return Ok(count);
         }
 
         // HEAD: api/StorageLocation/{id}
         [HttpHead("{id}")]
-        public IActionResult CheckLocationExists(Guid id)
+        public async Task<IActionResult> CheckLocationExists(Guid id)
         {
-            bool exists = _storageLocationService.LocationExists(id);
+            bool exists = await _storageLocationService.LocationExistsAsync(id);
             return exists ? Ok() : NotFound();
         }
     }

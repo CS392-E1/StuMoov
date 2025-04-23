@@ -1,6 +1,7 @@
-﻿using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Attributes;
 using System.ComponentModel.DataAnnotations;
 using Supabase.Postgrest.Models;
+using StuMoov.Models.UserModel.Enums;
 
 namespace StuMoov.Models.UserModel
 {
@@ -32,6 +33,8 @@ namespace StuMoov.Models.UserModel
         public DateTime? CreatedAt { get; set; }
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
+        [Column("Role")]
+        public UserRole Role { get; protected set; }
 
         protected User()
         {
