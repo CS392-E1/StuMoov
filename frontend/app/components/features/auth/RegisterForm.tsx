@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { signup } from "@/lib/api";
+import { register } from "@/lib/api";
 import { signupFirebase } from "@/lib/firebase";
 import { UserCredential } from "firebase/auth";
 import axios, { AxiosError } from "axios";
@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { convertRole } from "@/contexts/AuthContext";
+import { UserRole } from "@/types/user";
 
 axios.defaults.baseURL = "http://localhost:5004/api";
 
@@ -15,7 +15,7 @@ const RegisterForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"RENTER" | "LENDER">("RENTER");
+  const [role, setRole] = useState<UserRole>(UserRole.RENTER);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
@@ -36,49 +36,28 @@ const RegisterForm = () => {
       // 1) create user in Firebase
       const cred: UserCredential = await signupFirebase(email, password);
 
-      // 2) get the Firebase ID token (forceRefresh to pick up any custom claims)
+      // 2) get the Firebase ID token
       const idToken = await cred.user.getIdToken(true);
 
       // 3) call our backend to create the user + mint our JWT
-      const resp = await signup(idToken, role);
-      const { token: appJwt, role: rawRole } = resp.data as {
-        token: string;
-        role: string | number;
-      };
+      await register(idToken, role);
 
-      // Convert role to proper string enum value
-      const mappedRole = convertRole(rawRole);
-
-      // 4) stash our JWT + role
-      localStorage.setItem("stuMoov_jwt", appJwt);
-      localStorage.setItem("stuMoov_role", mappedRole);
-      localStorage.setItem(
-        "stuMoov_user",
-        JSON.stringify({
-          email: cred.user.email,
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || email,
-        })
-      );
-      axios.defaults.headers.common.Authorization = `Bearer ${appJwt}`;
-
+      // 4) refresh user state
       await refreshUser();
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      nav("/listings");
+      nav("/");
     } catch (err: unknown) {
       setLoading(false);
-      console.error(err);
 
       // handle axios errors
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<{ message: string }>;
-        setError(
+        const errorMsg =
           axiosError.response?.data?.message ||
-            axiosError.message ||
-            "Sign up failed, please try again."
-        );
+          axiosError.message ||
+          "Sign up failed, please try again.";
+
+        setError(errorMsg);
       }
       // handle firebase errors
       else if (err instanceof Error) {
@@ -136,9 +115,9 @@ const RegisterForm = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="radio"
-                value="RENTER"
-                checked={role === "RENTER"}
-                onChange={() => setRole("RENTER")}
+                value={UserRole.RENTER}
+                checked={role === UserRole.RENTER}
+                onChange={() => setRole(UserRole.RENTER)}
                 className="rounded text-blue-500 focus:ring-blue-500"
               />
               <span>I want to rent storage space</span>
@@ -146,9 +125,9 @@ const RegisterForm = () => {
             <label className="flex items-center space-x-2">
               <input
                 type="radio"
-                value="LENDER"
-                checked={role === "LENDER"}
-                onChange={() => setRole("LENDER")}
+                value={UserRole.LENDER}
+                checked={role === UserRole.LENDER}
+                onChange={() => setRole(UserRole.LENDER)}
                 className="rounded text-blue-500 focus:ring-blue-500"
               />
               <span>I want to list my storage space</span>

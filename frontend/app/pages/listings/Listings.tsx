@@ -27,7 +27,8 @@ export default function Listings() {
   const [locations, setLocations] = useState<StorageLocation[]>(mockLocations);
 
   useEffect(() => {
-    axios.get("http://localhost:5004/api/StorageLocation")
+    axios
+      .get("http://localhost:5004/api/storage")
       .then((res) => {
         if (res.data?.data && res.data.data.length > 0) {
           setLocations(res.data.data);
@@ -48,7 +49,6 @@ export default function Listings() {
     console.log("Searching for:", query);
   };
 
-
   return (
     <div className="flex flex-col h-[calc(100vh-150px)] w-full">
       <div className="flex flex-1 w-full">
@@ -57,12 +57,12 @@ export default function Listings() {
           <ListingsPanel
             locations={locations}
             onListingClick={handleListingClick}
-            />
-            </div>
-            <div className="w-2/3 relative">
-              <GoogleMaps ref={mapRef} locations={locations} />
-            </div>
-          </div>
+          />
         </div>
-      );
-    }
+        <div className="w-2/3 relative">
+          <GoogleMaps ref={mapRef} locations={locations} />
+        </div>
+      </div>
+    </div>
+  );
+}

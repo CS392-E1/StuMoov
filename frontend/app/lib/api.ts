@@ -1,15 +1,18 @@
 import axios from "axios";
+import { UserRole } from "@/types/user";
 
 axios.defaults.baseURL = "http://localhost:5004/api";
+axios.defaults.withCredentials = true; // Important for cookies
 
-export function setAuthToken(token: string) {
-  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-}
+export function register(idToken: string, role: UserRole) {
+  const endpoint =
+    role === UserRole.LENDER
+      ? "/auth/register/lender"
+      : "/auth/register/renter";
 
-export function signup(idToken: string, role: "RENTER" | "LENDER") {
   return axios.post(
-    "/auth/signup",
-    { role },
+    endpoint,
+    {},
     {
       headers: {
         Authorization: `Bearer ${idToken}`,
@@ -19,23 +22,25 @@ export function signup(idToken: string, role: "RENTER" | "LENDER") {
 }
 
 export async function login(idToken: string) {
-  return axios.post("/auth/login", undefined, {
-    headers: { Authorization: `Bearer ${idToken}` },
+  return axios.post(
+    "/auth/login",
+    {},
+    {
+      headers: { Authorization: `Bearer ${idToken}` },
+    }
+  );
+}
+
+export async function logout() {
+  return axios.post("/auth/logout");
+}
+
+export async function verifyAuth() {
+  return axios.get("/auth/verify", {
+    withCredentials: true,
   });
 }
 
-export async function fetchUserData(token: string): Promise<{
-  data: {
-    id: string;
-    firebaseUid: string;
-    email: string;
-    displayName: string;
-    role: string | number;
-    isEmailVerified: boolean;
-  };
-  status: number;
-}> {
-  return axios.get("/auth/me", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export async function fetchUserById(userId: string) {
+  return axios.get(`/user/${userId}`);
 }

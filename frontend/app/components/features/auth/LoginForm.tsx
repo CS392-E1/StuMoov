@@ -6,8 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, setAuthToken } from "@/lib/api";
-import { convertRole } from "@/contexts/AuthContext";
+import { login } from "@/lib/api";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -34,46 +33,25 @@ const LoginForm = () => {
       const idToken = await cred.user.getIdToken(true);
 
       // 3) call backend login
-      const resp = await login(idToken);
+      await login(idToken);
 
-      const { token: appJwt, role: rawRole } = resp.data as {
-        token: string;
-        role: string | number;
-      };
-
-      // convert role to proper string enum value
-      const role = convertRole(rawRole);
-
-      // 4) stash JWT + role
-      localStorage.setItem("stuMoov_jwt", appJwt);
-      localStorage.setItem("stuMoov_role", role);
-
-      localStorage.setItem(
-        "stuMoov_user",
-        JSON.stringify({
-          email: cred.user.email,
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || email,
-        })
-      );
-      setAuthToken(appJwt);
-
+      // 4) refresh user state
       await refreshUser();
 
       // 5) redirect
       nav("/");
     } catch (err: unknown) {
       setLoading(false);
-      console.error(err);
 
       // handle axios errors
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<{ message: string }>;
-        setError(
+        const errorMsg =
           axiosError.response?.data?.message ||
-            axiosError.message ||
-            "Login failed, please try again."
-        );
+          axiosError.message ||
+          "Login failed, please try again.";
+
+        setError(errorMsg);
       }
       // handle firebase errors
       else if (err instanceof Error) {

@@ -9,6 +9,8 @@ using Google.Apis.Auth.OAuth2;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using StuMoov.Middleware;
+using StuMoov.Services.AuthService;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,7 +41,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // Needed for cookies
         });
 });
 
@@ -70,6 +73,20 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             ClockSkew = TimeSpan.Zero
         };
+
+        // Support cookies
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Try to get the token from the cookie
+                if (context.Request.Cookies.TryGetValue("auth_token", out string? token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -81,15 +98,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddSingleton(supabase);
-builder.Services.AddSingleton<StorageLocationDao>(new StorageLocationDao());
-builder.Services.AddControllers()
-  .AddJsonOptions(opts =>
-  {
-      // allow string values for enums, case‐insensitive
-      opts.JsonSerializerOptions.Converters.Add(
-        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
-      );
-  });
+builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddScoped<StorageLocationDao>(sp =>
 {
@@ -130,6 +139,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors(policyName);
+app.UseJwtCookieMiddleware(); // Add our custom middleware
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

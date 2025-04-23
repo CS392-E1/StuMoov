@@ -3,6 +3,12 @@ export type User = {
   firebaseUid: string;
   email: string;
   displayName: string;
-  role: "RENTER" | "LENDER" | "ADMIN";
+  role: UserRole;
   isEmailVerified: boolean;
+  isAuthenticated: boolean;
 };
+
+export enum UserRole {
+  RENTER = "RENTER",
+  LENDER = "LENDER",
+}

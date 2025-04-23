@@ -1,16 +1,15 @@
-import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { signOutFirebase, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const userRole = user?.role;
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await signOutFirebase();
+      await logout();
       navigate("/");
     } catch (error) {
       console.error("logout error:", error);
@@ -25,17 +24,28 @@ export default function Home() {
             Welcome to StuMoov
           </h1>
 
+          {auth.currentUser && (
+            <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+              <h2 className="text-xl font-semibold mb-2">Your Account</h2>
+              <p className="text-gray-600 mb-2">
+                Logged in as:{" "}
+                <span className="font-medium">{auth.currentUser.email}</span>
+              </p>
+              <p className="text-gray-600">
+                Account Type:{" "}
+                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                  {user ? userRole : "Loading..."}
+                </span>
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/listings">
               <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
                 Browse Listings
               </button>
             </Link>
-            <div>
-              <Label>
-                <p>Your role is {userRole || "unknown"}</p>
-              </Label>
-            </div>
 
             {auth.currentUser && (
               <button
