@@ -15,6 +15,11 @@ export default function Home() {
                 Browse Listings
               </button>
             </Link>
+            <Link to="/add-listing">
+              <button className="px-6 py-3 bg-white text-blue-600 border border-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors">
+                Add Listing
+              </button>
+            </Link>
           </div>
         </div>
       </div>

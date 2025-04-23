@@ -50,6 +50,13 @@ builder.Services.AddScoped<UserDao>(sp =>
     var context = sp.GetRequiredService<AppDbContext>();
     return new UserDao(context);
 });
+
+builder.Services.AddScoped<MessageDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new MessageDao(context);
+});
+
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
