@@ -2,18 +2,25 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models.UserModel.Enums;
 using StuMoov.Services.AuthService;
-using System.IdentityModel.Tokens.Jwt;
+using StuMoov.Services.StripeService;
 using System.Security.Claims;
 using StuMoov.Models;
-
+using StuMoov.Models.UserModel;
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
-    public AuthController(AuthService authService)
+    private readonly StripeService _stripeService;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
+
+    public AuthController(AuthService authService, StripeService stripeService, IConfiguration configuration, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _stripeService = stripeService;
+        _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost("register/lender"), AllowAnonymous]
@@ -24,6 +31,36 @@ public class AuthController : ControllerBase
 
         // Set HttpOnly cookie with the JWT
         HandleAuthResponse(response);
+
+        // Create Stripe Connect account for the lender if registration was successful
+        if (response.Status == StatusCodes.Status201Created && response.Data != null)
+        {
+            // Get the user ID from the response
+            User? user = response.Data.GetType().GetProperty("user")?.GetValue(response.Data, null) as User;
+            Guid? userId = user?.Id;
+
+            if (userId.HasValue)
+            {
+                try
+                {
+                    // Create Stripe Connect account
+                    await _stripeService.CreateConnectAccountForLenderAsync(userId.Value);
+
+                    // Generate onboarding link for later use
+                    string? baseUrl = _configuration["AppBaseUrl"];
+                    string? refreshUrl = $"{baseUrl}/";
+                    string? returnUrl = $"{baseUrl}/";
+
+                    await _stripeService.CreateOnboardingLinkForLenderAsync(userId.Value, refreshUrl, returnUrl);
+                }
+                catch (Exception ex)
+                {
+                    // If this fails, we shouldn't fail the registration since there's logic
+                    // in the StripeService to handle creating the account later
+                    _logger.LogError(ex, "Failed to create Stripe Connect account during registration for user {UserId}", userId.Value);
+                }
+            }
+        }
 
         return StatusCode(response.Status, response);
     }

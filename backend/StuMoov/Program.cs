@@ -11,10 +11,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using StuMoov.Middleware;
 using StuMoov.Services.AuthService;
+using Stripe;
+using StuMoov.Services.StripeService;
 
 
 var builder = WebApplication.CreateBuilder(args);
 var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
+
+// Configure Stripe
+var stripeApiKey = builder.Configuration["Stripe:SecretKey"];
+StripeConfiguration.ApiKey = stripeApiKey;
 
 var url = builder.Configuration["Supabase:SUPABASE_URL"]!;
 var key = builder.Configuration["Supabase:SUPABASE_KEY"];
@@ -99,6 +105,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddSingleton(supabase);
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<StripeService>();
 
 builder.Services.AddScoped<StorageLocationDao>(sp =>
 {
@@ -114,6 +121,18 @@ builder.Services.AddScoped<UserDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
     return new UserDao(context);
+});
+
+builder.Services.AddScoped<StripeCustomerDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new StripeCustomerDao(context);
+});
+
+builder.Services.AddScoped<StripeConnectAccountDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new StripeConnectAccountDao(context);
 });
 
 builder.Services.AddScoped<MessageDao>(sp =>
