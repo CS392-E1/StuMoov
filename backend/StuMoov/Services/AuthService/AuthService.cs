@@ -55,7 +55,7 @@ namespace StuMoov.Services.AuthService
                 };
 
                 // Add user to database
-                var createdUser = await _userDao.AddUserAsync(user);
+                User? createdUser = await _userDao.AddUserAsync(user);
 
                 if (createdUser == null)
                 {
@@ -74,10 +74,7 @@ namespace StuMoov.Services.AuthService
                     "User registered successfully",
                     new
                     {
-                        uid,
-                        email = createdUser.Email,
-                        displayName = createdUser.DisplayName,
-                        role = role.ToString(),
+                        createdUser,
                         token = jwt
                     }
                 );

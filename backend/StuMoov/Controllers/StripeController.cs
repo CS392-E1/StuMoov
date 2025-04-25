@@ -6,6 +6,9 @@ using StuMoov.Dao;
 using StuMoov.Models.UserModel;
 using Stripe;
 using Stripe.Checkout;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+
 namespace StuMoov.Controllers
 {
     [ApiController]
@@ -14,15 +17,18 @@ namespace StuMoov.Controllers
     {
         private readonly StripeService _stripeService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<StripeService> _logger;
 
         public StripeController(
             StripeCustomerDao stripeCustomerDao,
             StripeConnectAccountDao stripeConnectAccountDao,
             UserDao userDao,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger<StripeService> logger)
         {
             _configuration = configuration;
-            _stripeService = new StripeService(configuration, stripeCustomerDao, stripeConnectAccountDao, userDao);
+            _logger = logger;
+            _stripeService = new StripeService(configuration, stripeCustomerDao, stripeConnectAccountDao, userDao, _logger);
         }
 
         [HttpPost("connect/accounts")]
@@ -30,7 +36,7 @@ namespace StuMoov.Controllers
         public async Task<IActionResult> CreateConnectAccount()
         {
             // Get user ID from claims
-            string? userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return BadRequest(new Response(400, "Invalid user ID in token", null));
@@ -46,11 +52,10 @@ namespace StuMoov.Controllers
         }
 
         [HttpGet("connect/accounts/onboarding-link")]
-        [Authorize(Policy = "LenderOnly")]
         public async Task<IActionResult> GetOnboardingLink()
         {
             // Get user ID from claims
-            string? userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return BadRequest(new Response(400, "Invalid user ID in token", null));
@@ -74,7 +79,7 @@ namespace StuMoov.Controllers
         public async Task<IActionResult> GetAccountStatus()
         {
             // Get user ID from claims
-            string? userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return BadRequest(new Response(400, "Invalid user ID in token", null));
@@ -94,7 +99,7 @@ namespace StuMoov.Controllers
         public async Task<IActionResult> CreateCustomer()
         {
             // Get user ID from claims
-            string? userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return BadRequest(new Response(400, "Invalid user ID in token", null));
@@ -119,7 +124,7 @@ namespace StuMoov.Controllers
             }
 
             // Get user ID from claims
-            string? userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 return BadRequest(new Response(400, "Invalid user ID in token", null));

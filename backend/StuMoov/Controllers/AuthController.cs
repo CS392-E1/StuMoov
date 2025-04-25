@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RegisterLender()
     {
         var idToken = ExtractBearer();
-        var response = await _authService.SignupAsync(idToken, UserRole.LENDER);
+        Response response = await _authService.SignupAsync(idToken, UserRole.LENDER);
 
         // Set HttpOnly cookie with the JWT
         HandleAuthResponse(response);
@@ -35,8 +35,8 @@ public class AuthController : ControllerBase
         // Create Stripe Connect account for the lender if registration was successful
         if (response.Status == StatusCodes.Status201Created && response.Data != null)
         {
-            // Get the user ID from the response
-            User? user = response.Data.GetType().GetProperty("user")?.GetValue(response.Data, null) as User;
+            dynamic responseData = response.Data;
+            User user = responseData.createdUser;
             Guid? userId = user?.Id;
 
             if (userId.HasValue)
@@ -45,20 +45,18 @@ public class AuthController : ControllerBase
                 {
                     // Create Stripe Connect account
                     await _stripeService.CreateConnectAccountForLenderAsync(userId.Value);
+                    _logger.LogInformation("Successfully created Stripe Connect account for Lender {UserId} from AuthController", userId.Value);
 
-                    // Generate onboarding link for later use
-                    string? baseUrl = _configuration["AppBaseUrl"];
-                    string? refreshUrl = $"{baseUrl}/";
-                    string? returnUrl = $"{baseUrl}/";
-
-                    await _stripeService.CreateOnboardingLinkForLenderAsync(userId.Value, refreshUrl, returnUrl);
                 }
                 catch (Exception ex)
                 {
-                    // If this fails, we shouldn't fail the registration since there's logic
-                    // in the StripeService to handle creating the account later
-                    _logger.LogError(ex, "Failed to create Stripe Connect account during registration for user {UserId}", userId.Value);
+                    // Log the error but don't fail the registration
+                    _logger.LogError(ex, "Failed to create Stripe Connect account during registration for user {UserId} from AuthController", userId.Value);
                 }
+            }
+            else
+            {
+                _logger.LogWarning("Could not extract user ID from successful registration response to create Stripe account.");
             }
         }
 

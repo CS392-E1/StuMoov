@@ -13,17 +13,20 @@ namespace StuMoov.Services.StripeService
         private readonly StripeCustomerDao _stripeCustomerDao;
         private readonly StripeConnectAccountDao _stripeConnectAccountDao;
         private readonly UserDao _userDao;
+        private readonly ILogger<StripeService> _logger;
 
         public StripeService(
             IConfiguration configuration,
             StripeCustomerDao stripeCustomerDao,
             StripeConnectAccountDao stripeConnectAccountDao,
-            UserDao userDao)
+            UserDao userDao,
+            ILogger<StripeService> logger)
         {
             _configuration = configuration;
             _stripeCustomerDao = stripeCustomerDao;
             _stripeConnectAccountDao = stripeConnectAccountDao;
             _userDao = userDao;
+            _logger = logger;
         }
 
         public async Task<Account> CreateConnectAccountAsync(string email, string userId)

@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { register } from "@/lib/api";
+import { register, getOnboardingLink } from "@/lib/api";
 import { signupFirebase } from "@/lib/firebase";
 import { UserCredential } from "firebase/auth";
 import axios, { AxiosError } from "axios";
@@ -45,6 +45,15 @@ const RegisterForm = () => {
       // 4) refresh user state
       await refreshUser();
 
+      if (role === UserRole.LENDER) {
+        const response = await getOnboardingLink();
+        console.log(response);
+        const onboardingUrl = response.data.data?.url;
+        console.log(onboardingUrl);
+        if (onboardingUrl) {
+          window.location.href = onboardingUrl;
+        }
+      }
       nav("/");
     } catch (err: unknown) {
       setLoading(false);
