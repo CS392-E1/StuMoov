@@ -52,5 +52,20 @@ namespace StuMoov.Models.UserModel
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
+
+        // Method to update status
+        public void UpdateStatus(StripeConnectAccountStatus status, bool payoutsEnabled)
+        {
+            Status = status;
+            PayoutsEnabled = payoutsEnabled;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Method to update account link URL
+        public void UpdateAccountLinkUrl(string accountLinkUrl)
+        {
+            AccountLinkUrl = accountLinkUrl;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

@@ -2,28 +2,63 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models.UserModel.Enums;
 using StuMoov.Services.AuthService;
-using System.IdentityModel.Tokens.Jwt;
+using StuMoov.Services.StripeService;
 using System.Security.Claims;
 using StuMoov.Models;
-
+using StuMoov.Models.UserModel;
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
-    public AuthController(AuthService authService)
+    private readonly StripeService _stripeService;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
+
+    public AuthController(AuthService authService, StripeService stripeService, IConfiguration configuration, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _stripeService = stripeService;
+        _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost("register/lender"), AllowAnonymous]
     public async Task<IActionResult> RegisterLender()
     {
         var idToken = ExtractBearer();
-        var response = await _authService.SignupAsync(idToken, UserRole.LENDER);
+        Response response = await _authService.SignupAsync(idToken, UserRole.LENDER);
 
         // Set HttpOnly cookie with the JWT
         HandleAuthResponse(response);
+
+        // Create Stripe Connect account for the lender if registration was successful
+        if (response.Status == StatusCodes.Status201Created && response.Data != null)
+        {
+            dynamic responseData = response.Data;
+            User user = responseData.createdUser;
+            Guid? userId = user?.Id;
+
+            if (userId.HasValue)
+            {
+                try
+                {
+                    // Create Stripe Connect account
+                    await _stripeService.CreateConnectAccountForLenderAsync(userId.Value);
+                    _logger.LogInformation("Successfully created Stripe Connect account for Lender {UserId} from AuthController", userId.Value);
+
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but don't fail the registration
+                    _logger.LogError(ex, "Failed to create Stripe Connect account during registration for user {UserId} from AuthController", userId.Value);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Could not extract user ID from successful registration response to create Stripe account.");
+            }
+        }
 
         return StatusCode(response.Status, response);
     }
@@ -63,7 +98,7 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid authentication token" });
         }
 
-        return Ok(new { userId });
+        return Ok(new Response(200, "User verified successfully", new { userId }));
     }
 
     [HttpPost("logout")]
@@ -96,7 +131,7 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = true, // Only sent over HTTPS
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.Now.AddDays(7), // Match your token expiration
+            Expires = DateTimeOffset.Now.AddDays(1),
             Path = "/"
         });
     }

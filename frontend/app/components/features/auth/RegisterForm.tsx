@@ -1,7 +1,5 @@
 import { useState, FormEvent } from "react";
-import { register } from "@/lib/api";
-import { signupFirebase } from "@/lib/firebase";
-import { UserCredential } from "firebase/auth";
+import { getOnboardingLink } from "@/lib/api";
 import axios, { AxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,7 +17,7 @@ const RegisterForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
-  const { refreshUser } = useAuth();
+  const { register: registerUser } = useAuth();
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,19 +31,30 @@ const RegisterForm = () => {
     }
 
     try {
-      // 1) create user in Firebase
-      const cred: UserCredential = await signupFirebase(email, password);
+      await registerUser(email, password, role);
 
-      // 2) get the Firebase ID token
-      const idToken = await cred.user.getIdToken(true);
-
-      // 3) call our backend to create the user + mint our JWT
-      await register(idToken, role);
-
-      // 4) refresh user state
-      await refreshUser();
-
-      nav("/");
+      if (role === UserRole.LENDER) {
+        try {
+          const response = await getOnboardingLink();
+          const onboardingUrl = response.data.data?.url;
+          if (onboardingUrl) {
+            window.location.href = onboardingUrl;
+          } else {
+            setError(
+              "Registration successful, but failed to get onboarding link."
+            );
+            setLoading(false);
+          }
+        } catch (onboardingError) {
+          console.error("Failed to get onboarding link:", onboardingError);
+          setError(
+            "Registration successful, but failed to get onboarding link. Please try again."
+          );
+          setLoading(false);
+        }
+      } else {
+        nav("/");
+      }
     } catch (err: unknown) {
       setLoading(false);
 

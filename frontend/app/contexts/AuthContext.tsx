@@ -6,8 +6,8 @@ import {
   signOutFirebase,
   signupFirebase,
 } from "@/lib/firebase";
-import { login, register, verifyAuth } from "@/lib/api";
-import { createUserObject } from "@/lib/userUtils";
+import { login, logout, register, verifyAuth } from "@/lib/api";
+import { createUserObject } from "@/lib/user-utils";
 import axios from "axios";
 import { User, UserRole } from "@/types/user";
 
@@ -142,8 +142,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // First try to verify with the backend
       const response = await verifyAuth();
 
-      if (response.data && response.data.userId) {
-        return response.data.userId;
+      if (response.data && response.data.data) {
+        return response.data.data.userId;
       }
 
       // If that fails but Firebase user exists, use Firebase UID as fallback
@@ -154,11 +154,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return null;
     } catch (error) {
       console.error("Failed to fetch user ID from backend:", error);
-
-      // Use Firebase user ID as fallback if available
-      if (auth.currentUser) {
-        return auth.currentUser.uid;
-      }
 
       return null;
     }
@@ -238,13 +233,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   let isRefreshing = false;
 
   // Logout
-  const logout = async () => {
+  const logoutAuthContext = async () => {
     try {
       // Sign out from Firebase
       await signOutFirebase();
 
       // Call backend logout endpoint to clear the cookie
-      await axios.post("/auth/logout", {}, { withCredentials: true });
+      await logout();
 
       dispatch({ type: "LOGOUT" });
     } catch (error) {
@@ -310,7 +305,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         ...state,
         login: loginWithEmailAndPassword,
         register: registerWithEmailAndPassword,
-        logout,
+        logout: logoutAuthContext,
         refreshUser,
       }}
     >
