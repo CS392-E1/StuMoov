@@ -351,7 +351,7 @@ namespace StuMoov.Services.StripeService
                 Invoice invoice = await invoiceService.CreateAsync(invoiceOptions);
                 _logger.LogInformation($"Created Draft Invoice {invoice.Id} for Booking {bookingId}");
 
-                // 2. Create the InvoiceIteme
+                // 2. Create the InvoiceItem
                 var invoiceItemOptions = new InvoiceItemCreateOptions
                 {
                     Customer = renterStripeCustomerId,
