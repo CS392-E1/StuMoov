@@ -13,6 +13,7 @@ using StuMoov.Middleware;
 using StuMoov.Services.AuthService;
 using Stripe;
 using StuMoov.Services.StripeService;
+using StuMoov.Services.BookingService;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -140,6 +141,15 @@ builder.Services.AddScoped<MessageDao>(sp =>
     var context = sp.GetRequiredService<AppDbContext>();
     return new MessageDao(context);
 });
+
+// Register PaymentDao
+builder.Services.AddScoped<PaymentDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new PaymentDao(context);
+});
+
+builder.Services.AddScoped<BookingService>();
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>

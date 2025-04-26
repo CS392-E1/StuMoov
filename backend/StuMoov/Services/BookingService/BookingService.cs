@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.BookingModel;
+using StuMoov.Services.StripeService;
+using Microsoft.Extensions.Logging;
+using StuMoov.Models.PaymentModel;
 
 namespace StuMoov.Services.BookingService
 {
@@ -13,11 +16,15 @@ namespace StuMoov.Services.BookingService
     {
         [Required]
         private readonly BookingDao _bookingDao;
+        private readonly StuMoov.Services.StripeService.StripeService _stripeService;
+        private readonly ILogger<BookingService> _logger;
 
         // Constructor with dependency injection
-        public BookingService(BookingDao bookingDao)
+        public BookingService(BookingDao bookingDao, StuMoov.Services.StripeService.StripeService stripeService, ILogger<BookingService> logger)
         {
             _bookingDao = bookingDao;
+            _stripeService = stripeService;
+            _logger = logger;
         }
 
         // Create a new booking - taking a Booking object directly
@@ -128,36 +135,74 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Confirm a booking
-        public async Task<Response> ConfirmBookingAsync(Guid id, Guid paymentId)
+        // Confirm a booking and trigger invoice creation
+        public async Task<Response> ConfirmBookingAsync(Guid id)
         {
+            _logger.LogInformation($"Attempting to confirm Booking ID: {id}");
             try
             {
                 if (id == Guid.Empty)
+                {
+                    _logger.LogWarning("ConfirmBookingAsync called with empty Booking ID.");
                     return new Response(StatusCodes.Status400BadRequest, "Booking ID cannot be empty", null);
-
-                if (paymentId == Guid.Empty)
-                    return new Response(StatusCodes.Status400BadRequest, "Payment ID cannot be empty", null);
+                }
 
                 var booking = await _bookingDao.GetByIdAsync(id);
                 if (booking == null)
+                {
+                    _logger.LogWarning($"Booking with ID {id} not found for confirmation.");
                     return new Response(StatusCodes.Status404NotFound, $"Booking with ID {id} not found", null);
+                }
+                if (booking.PaymentId == Guid.Empty)
+                {
+                    _logger.LogError($"Booking {id} is missing associated Payment record. Cannot confirm.");
+                    return new Response(StatusCodes.Status500InternalServerError, "Booking is missing payment information.", null);
+                }
 
                 if (booking.Status != BookingStatus.PENDING)
+                {
+                    _logger.LogWarning($"Attempted to confirm booking {id} which is not PENDING. Status: {booking.Status}");
                     return new Response(StatusCodes.Status400BadRequest, "Only pending bookings can be confirmed", null);
+                }
+                if (booking.Payment!.Status != PaymentStatus.DRAFT)
+                {
+                    _logger.LogWarning($"Attempted to confirm booking {id} but its Payment {booking.PaymentId} status is not DRAFT. Status: {booking.Payment.Status}");
+                    return new Response(StatusCodes.Status400BadRequest, "Associated payment record is not in the expected DRAFT state.", null);
+                }
 
-                // Update booking status - we can't directly set the PaymentId in the new model
-                // since it's a private setter. Instead, we'd need to create a new booking
-                // or modify the model to allow this operation
-                if (!await _bookingDao.UpdateStatusAsync(id, BookingStatus.CONFIRMED))
+                // 1: Update local booking status first
+                bool statusUpdated = await _bookingDao.UpdateStatusAsync(id, BookingStatus.CONFIRMED);
+
+                if (!statusUpdated)
+                {
+                    _logger.LogError($"Failed to update status to CONFIRMED for booking {id}.");
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to update booking status", null);
+                }
+                _logger.LogInformation($"Successfully updated booking {id} status to CONFIRMED.");
 
-                // Get the updated booking
-                var updatedBooking = await _bookingDao.GetByIdAsync(id);
-                return new Response(StatusCodes.Status200OK, "Booking confirmed successfully", updatedBooking);
+                // 2: Trigger Stripe Invoice Creation
+                _logger.LogInformation($"Calling StripeService to create invoice for booking {id}.");
+                Payment? updatedPayment = await _stripeService.CreateAndSendInvoiceForBookingAsync(id);
+
+                if (updatedPayment == null)
+                {
+                    // If we got here, then the booking was confirmed locally, but the invoice creation failed.
+                    // We could manually send the invoice on Stripe Dashboard, or we could create a trigger to do this.
+                    // TODO: Think about a solution for this.
+                    _logger.LogError($"Stripe invoice creation failed for confirmed booking {id}. The booking remains confirmed, but the invoice needs attention.");
+                }
+                else
+                {
+                    _logger.LogInformation($"Stripe invoice creation initiated successfully for booking {id}. Payment record {updatedPayment.Id} updated.");
+                }
+
+                // Get the updated booking to return
+                var confirmedBooking = await _bookingDao.GetByIdAsync(id);
+                return new Response(StatusCodes.Status200OK, "Booking confirmed successfully. Invoice process initiated.", confirmedBooking);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Error during booking confirmation for ID {id}: {ex.Message}");
                 return new Response(StatusCodes.Status500InternalServerError, ex.Message, null);
             }
         }

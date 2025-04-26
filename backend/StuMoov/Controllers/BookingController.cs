@@ -13,10 +13,9 @@ namespace StuMoov.Controllers
         private readonly BookingService _bookingService;
 
         // Constructor to inject BookingService dependency
-        public BookingController(BookingDao bookingDao)
+        public BookingController(BookingService bookingService)
         {
-            // Create BookingService instance using injected DAO
-            this._bookingService = new BookingService(bookingDao);
+            _bookingService = bookingService;
         }
 
         // GET: api/bookings
@@ -74,9 +73,9 @@ namespace StuMoov.Controllers
 
         // PUT: api/bookings/{id}/confirm
         [HttpPut("{id}/confirm")]
-        public async Task<ActionResult<Response>> ConfirmBooking(Guid id, [FromBody] Guid paymentId)
+        public async Task<ActionResult<Response>> ConfirmBooking(Guid id)
         {
-            Response response = await _bookingService.ConfirmBookingAsync(id, paymentId);
+            Response response = await _bookingService.ConfirmBookingAsync(id);
             return StatusCode(response.Status, response);
         }
 

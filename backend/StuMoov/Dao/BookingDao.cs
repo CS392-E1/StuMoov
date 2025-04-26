@@ -37,6 +37,8 @@ public class BookingDao
             .Include(b => b.Renter)
                 .ThenInclude(r => r.StripeCustomerInfo)
             .Include(b => b.StorageLocation)
+                .ThenInclude(sl => sl.Lender)
+                    .ThenInclude(l => l.StripeConnectInfo)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
 

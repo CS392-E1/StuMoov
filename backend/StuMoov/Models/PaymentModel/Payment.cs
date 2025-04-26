@@ -27,6 +27,8 @@ namespace StuMoov.Models.PaymentModel
         public Guid LenderId { get; private set; }
         [Reference(typeof(Lender), ReferenceAttribute.JoinType.Inner, true, "lender_id")]
         public Lender? Lender { get; private set; } // Reference to the lender associated with this payment
+        [Column("stripe_invoice_id")]
+        public string? StripeInvoiceId { get; private set; }
         [Required]
         [Column("stripe_payment_intent_id")]
         public string StripePaymentIntentId { get; private set; } = string.Empty;
@@ -61,20 +63,39 @@ namespace StuMoov.Models.PaymentModel
             // The private modifier restricts its usage to EF Core only
         }
 
-        public Payment(Booking booking, Renter renter, Lender lender, string stripePaymentIntentId, decimal amountCharged, decimal platformFee, decimal amountTransferred)
+        public Payment(Booking booking, Renter renter, Lender lender, string? stripeInvoiceId, string stripePaymentIntentId, decimal amountCharged, decimal platformFee, decimal amountTransferred)
         {
             Id = Guid.NewGuid();
             BookingId = booking.Id;
             RenterId = renter.Id;
             LenderId = lender.Id;
+            StripeInvoiceId = stripeInvoiceId;
             StripePaymentIntentId = stripePaymentIntentId;
             AmountCharged = amountCharged;
             Currency = "usd";
             PlatformFee = platformFee;
             AmountTransferred = amountTransferred;
-            Status = PaymentStatus.REQUIRES_ACTION;
+            Status = PaymentStatus.DRAFT;
             CreatedAt = DateTime.Now;
             UpdatedAt = DateTime.Now;
+        }
+
+        // Method to update details after Stripe Invoice is created
+        public void UpdateWithInvoiceDetails(string stripeInvoiceId, PaymentStatus status, decimal amountCharged, decimal platformFee, decimal amountTransferred)
+        {
+            StripeInvoiceId = stripeInvoiceId;
+            Status = status;
+            AmountCharged = amountCharged;
+            PlatformFee = platformFee;
+            AmountTransferred = amountTransferred;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Method to update status based on webhook events
+        public void UpdateStatus(PaymentStatus newStatus)
+        {
+            Status = newStatus;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }
