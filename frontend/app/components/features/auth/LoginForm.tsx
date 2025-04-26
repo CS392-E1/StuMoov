@@ -1,12 +1,9 @@
 import { useState, FormEvent } from "react";
-import { signInWithEmailAndPassword, UserCredential } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import axios, { AxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login } from "@/lib/api";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -14,7 +11,7 @@ const LoginForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
-  const { refreshUser } = useAuth();
+  const { login: loginUser } = useAuth();
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -22,23 +19,8 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      // 1) sign in with Firebase
-      const cred: UserCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      await loginUser(email, password);
 
-      // 2) get ID token
-      const idToken = await cred.user.getIdToken(true);
-
-      // 3) call backend login
-      await login(idToken);
-
-      // 4) refresh user state
-      await refreshUser();
-
-      // 5) redirect
       nav("/");
     } catch (err: unknown) {
       setLoading(false);

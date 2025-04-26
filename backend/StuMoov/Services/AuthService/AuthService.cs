@@ -14,11 +14,13 @@ namespace StuMoov.Services.AuthService
     {
         private readonly UserDao _userDao;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(UserDao userDao, IConfiguration configuration)
+        public AuthService(UserDao userDao, IConfiguration configuration, ILogger<AuthService> logger)
         {
             _userDao = userDao;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<Response> SignupAsync(string idToken, UserRole role)
@@ -59,9 +61,20 @@ namespace StuMoov.Services.AuthService
 
                 if (createdUser == null)
                 {
+                    // This try/catch deletes the user from Firebase if the user was not created in the database
+                    try
+                    {
+                        await FirebaseAuth.DefaultInstance.DeleteUserAsync(uid);
+                    }
+                    catch (FirebaseAuthException deleteEx)
+                    {
+
+                        _logger.LogError($"Failed to delete Firebase user {uid} after DB registration failure: {deleteEx.Message}");
+                    }
+
                     return new Response(
                         StatusCodes.Status500InternalServerError,
-                        "Failed to create user",
+                        "Failed to register user in the database. Deleted user from Firebase.",
                         null
                     );
                 }
@@ -175,8 +188,9 @@ namespace StuMoov.Services.AuthService
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, sub),
+                new Claim(ClaimTypes.NameIdentifier, sub),
                 new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim("role", role),
+                new Claim(ClaimTypes.Role, role),
             };
 
             var token = new JwtSecurityToken(

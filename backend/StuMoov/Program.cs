@@ -13,7 +13,7 @@ using StuMoov.Middleware;
 using StuMoov.Services.AuthService;
 using Stripe;
 using StuMoov.Services.StripeService;
-
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
@@ -98,9 +98,9 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("LenderOnly",
-      p => p.RequireClaim("role", "LENDER"));
+      p => p.RequireClaim(ClaimTypes.Role, "LENDER"));
     options.AddPolicy("RenterOnly",
-      p => p.RequireClaim("role", "RENTER"));
+      p => p.RequireClaim(ClaimTypes.Role, "RENTER"));
 });
 
 builder.Services.AddSingleton(supabase);
@@ -145,6 +145,7 @@ builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
         // Optional: use CamelCase
         // options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
     });

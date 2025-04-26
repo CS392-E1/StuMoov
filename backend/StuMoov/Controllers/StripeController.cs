@@ -52,6 +52,7 @@ namespace StuMoov.Controllers
         }
 
         [HttpGet("connect/accounts/onboarding-link")]
+        [Authorize(Policy = "LenderOnly")]
         public async Task<IActionResult> GetOnboardingLink()
         {
             // Get user ID from claims

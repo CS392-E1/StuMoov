@@ -98,7 +98,7 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid authentication token" });
         }
 
-        return Ok(new { userId });
+        return Ok(new Response(200, "User verified successfully", new { userId }));
     }
 
     [HttpPost("logout")]
@@ -131,7 +131,7 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = true, // Only sent over HTTPS
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.Now.AddDays(7), // Match your token expiration
+            Expires = DateTimeOffset.Now.AddDays(1),
             Path = "/"
         });
     }

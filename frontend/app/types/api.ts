@@ -1,9 +1,13 @@
-export interface ApiResponse<T> {
+export type ApiResponse<T> = {
   status: number;
   message: string;
   data: T | null;
-}
+};
 
-export interface OnboardingLinkResponse {
+export type OnboardingLinkResponse = {
   url: string;
-}
+};
+
+export type VerifyResponse = {
+  userId: string;
+};
