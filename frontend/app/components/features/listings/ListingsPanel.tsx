@@ -1,9 +1,10 @@
-import { StorageLocation } from "./GoogleMaps";
+import { StorageLocation } from "@/types/storage";
 import { ListingsCard } from "./ListingsCard";
-interface ListingsPanelProps {
+
+type ListingsPanelProps = {
   locations: StorageLocation[];
-  onListingClick: (listing: StorageLocation) => void; // <-- pass the full listing
-}
+  onListingClick: (listing: StorageLocation) => void;
+};
 
 export function ListingsPanel({
   locations,
@@ -24,7 +25,7 @@ export function ListingsPanel({
             <ListingsCard
               key={location.id}
               listing={location}
-              onListingClick={() => onListingClick(location)} // <-- pass full location object
+              onListingClick={() => onListingClick(location)}
             />
           ))
         )}
