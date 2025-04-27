@@ -1,14 +1,15 @@
 import { StorageLocation } from "@/types/storage";
+
 interface ListingsCardProps {
   listing: StorageLocation;
-  onListingClick: () => void; // <-- just trigger onClick (no lat/lng here)
+  onListingClick: (lat: number, lng: number) => void;
 }
 
 export function ListingsCard({ listing, onListingClick }: ListingsCardProps) {
   return (
     <div
       className="bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-blue-50 transition border border-gray-200"
-      onClick={onListingClick} // <-- just call it
+      onClick={() => onListingClick(listing.lat, listing.lng)}
     >
       <div className="flex flex-row">
         <div className="flex flex-col flex-grow pr-3">

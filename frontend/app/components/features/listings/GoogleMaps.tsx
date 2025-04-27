@@ -53,7 +53,6 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
                 key={location.id}
                 position={{ lat: location.lat, lng: location.lng }}
                 onClick={() => {
-                  console.log("Messaging lenderId:", location.lenderId);
                   setSelectedLocation(location);
                   setChatOpen(false); // close chat when opening info window
                 }}
@@ -86,7 +85,7 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
 
         {chatOpen && selectedLocation && (
           <ChatPopup
-            receiver={selectedLocation.lenderId} 
+            receiver={selectedLocation.name}
             onClose={() => setChatOpen(false)}
           />
         )}

@@ -1,8 +1,9 @@
 import { StorageLocation } from "./GoogleMaps";
 import { ListingsCard } from "./ListingsCard";
+
 interface ListingsPanelProps {
   locations: StorageLocation[];
-  onListingClick: (listing: StorageLocation) => void; // <-- pass the full listing
+  onListingClick: (lat: number, lng: number) => void;
 }
 
 export function ListingsPanel({
@@ -24,7 +25,7 @@ export function ListingsPanel({
             <ListingsCard
               key={location.id}
               listing={location}
-              onListingClick={() => onListingClick(location)} // <-- pass full location object
+              onListingClick={onListingClick}
             />
           ))
         )}

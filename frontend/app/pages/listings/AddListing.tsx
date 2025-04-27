@@ -4,7 +4,7 @@ import { GoogleMaps, GoogleMapsRef } from "@/components/features/listings/Google
 import { ListingsPanel } from "@/components/features/listings/ListingsPanel";
 import { SearchBar } from "@/components/features/listings/SearchBar";
 import Modal from "@/components/common/Modal";
-import { StorageLocation, User, Message } from "@/types/storage";
+import { StorageLocation, User } from "@/types/storage";
 
 export default function AddListing() {
   const mapRef = useRef<GoogleMapsRef>(null);
@@ -13,78 +13,34 @@ export default function AddListing() {
   const [interestedRenters, setInterestedRenters] = useState<User[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"Renters" | "Messages">("Renters");
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
 
-  // Your IDs
-  const lenderId = "00000000-0000-0000-0000-000000000000"; 
-  const renterId = "11111111-2222-3333-4444-555555555555";
+  const userId = "00000000-0000-0000-0000-000000000000";
 
   useEffect(() => {
-    axios.get(`http://localhost:5004/api/storage/user/${lenderId}`)
+    axios.get(`http://localhost:5004/api/storage/user/${userId}`)
       .then((res) => {
         if (res.data?.data) {
           setLocations(res.data.data);
         }
       })
       .catch((err) => console.error("Failed to fetch user listings", err));
-  }, []);
+  }, [userId]);
 
-  const handleListingClick = async (listing: StorageLocation) => {
-    console.log("Clicked listing:", listing);
-
-    if (typeof listing.lat !== "number" || typeof listing.lng !== "number") {
-      console.warn("Invalid lat/lng for listing:", listing);
-      return;
-    }
-
+  const handleListingClick = (listing: StorageLocation) => {
     setSelectedLocation(listing);
     setModalOpen(true);
     setActiveTab("Renters");
 
-    try {
-      const rentersRes = await axios.get("http://localhost:5004/api/user/renters");
-      if (rentersRes.data?.data) {
-        setInterestedRenters(rentersRes.data.data);
-      }
-
-      // HARD CALL this exact API to fetch messages
-      const messagesRes = await axios.get(
-        `http://localhost:5004/api/messages?user1=${lenderId}&user2=${renterId}`
-      );
-      if (messagesRes.data?.data) {
-        console.log("Hard-fetched messages:", messagesRes.data.data);
-        setChatMessages(messagesRes.data.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch renters or messages", err);
-    }
+    axios.get("http://localhost:5004/api/user/renters")
+      .then((res) => {
+        if (res.data?.data) {
+          setInterestedRenters(res.data.data);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch interested renters", err));
 
     mapRef.current?.panTo(listing.lat, listing.lng);
     mapRef.current?.setZoom(16);
-  };
-
-  const handleSend = async () => {
-    if (newMessage.trim() === "" || !selectedLocation) return;
-
-    try {
-      await axios.post("http://localhost:5004/api/messages", {
-        senderId: lenderId,
-        recipientId: renterId, // lender sending message to renter
-        content: newMessage,
-      });
-
-      const refreshed = await axios.get(
-        `http://localhost:5004/api/messages?user1=${lenderId}&user2=${renterId}`
-      );
-      if (refreshed.data?.data) {
-        setChatMessages(refreshed.data.data);
-      }
-
-      setNewMessage("");
-    } catch (err) {
-      console.error("Failed to send message", err);
-    }
   };
 
   const handleSearch = (query: string) => {
@@ -104,18 +60,61 @@ export default function AddListing() {
       </div>
 
       {modalOpen && selectedLocation && (
-        <Modal
-          title={`Interested in ${selectedLocation.name}`}
-          onClose={() => setModalOpen(false)}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          chatMessages={chatMessages}
-          newMessage={newMessage}
-          setNewMessage={setNewMessage}
-          onSendMessage={handleSend}
-          interestedRenters={interestedRenters}
-          currentUserId={lenderId}
-        />
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">{`Interested in ${selectedLocation.name}`}</h2>
+              <button onClick={() => setModalOpen(false)} className="text-gray-600 hover:text-black text-lg">&times;</button>
+            </div>
+
+            <div className="border-b flex">
+              {["Renters", "Messages"].map((tab) => (
+                <button
+                  key={tab}
+                  className={`flex-1 p-2 text-sm font-medium transition ${
+                    activeTab === tab
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-600 hover:text-blue-500"
+                  }`}
+                  onClick={() => setActiveTab(tab as "Renters" | "Messages")}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4">
+              {activeTab === "Renters" && (
+                <ul className="space-y-2">
+                  {interestedRenters.length > 0 ? (
+                    interestedRenters.map((renter) => (
+                      <li key={renter.id} className="p-2 border rounded">
+                        <p><strong>Email:</strong> {renter.email}</p>
+                        <p><strong>Display Name:</strong> {renter.displayName || "N/A"}</p>
+                      </li>
+                    ))
+                  ) : (
+                    <p>No interested renters found.</p>
+                  )}
+                </ul>
+              )}
+
+              {activeTab === "Messages" && (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">
+                    <strong>You:</strong> Hey, I saw you booked this spot. Let me know if you have questions!
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <strong>David:</strong> Thank you! Just wondering if there's a loading dock?
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <strong>You:</strong> Yup! There's one at the rear entrance FAM.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
