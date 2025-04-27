@@ -16,6 +16,7 @@ export type Session = {
   renter?: User;
   lender?: User;
   bookingId?: string | null;
+  storageLocationId?: string | null;
   createdAt: string;
   updatedAt: string;
 };

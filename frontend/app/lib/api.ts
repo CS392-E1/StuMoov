@@ -130,11 +130,12 @@ export async function getMessagesBySessionId(
 
 export async function createSession(
   renterId: string,
-  lenderId: string
+  lenderId: string,
+  storageLocationId: string
 ): Promise<AxiosResponse<ApiResponse<Session>>> {
   return axios.post(
     "/chat/sessions",
-    { renterId, lenderId },
+    { renterId, lenderId, storageLocationId },
     { withCredentials: true }
   );
 }
@@ -160,10 +161,11 @@ export async function getBookingsByStorageLocationId(
 
 export async function getSessionByParticipants(
   renterId: string,
-  lenderId: string
+  lenderId: string,
+  storageLocationId: string
 ): Promise<AxiosResponse<ApiResponse<Session>>> {
   return axios.get(`/chat/sessions/participants`, {
-    params: { renterId, lenderId },
+    params: { renterId, lenderId, storageLocationId },
     withCredentials: true,
     validateStatus: function (status) {
       return (status >= 200 && status < 300) || status === 404;

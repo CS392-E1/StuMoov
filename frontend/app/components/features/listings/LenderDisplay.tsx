@@ -63,7 +63,13 @@ const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
   );
 };
 
-const MessagesTabContent = ({ lenderId }: { lenderId: string }) => {
+const MessagesTabContent = ({
+  lenderId,
+  listingId,
+}: {
+  lenderId: string;
+  listingId: string;
+}) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
@@ -87,7 +93,15 @@ const MessagesTabContent = ({ lenderId }: { lenderId: string }) => {
           response.status < 300 &&
           response.data.data
         ) {
-          setSessions(response.data.data);
+          // Filter sessions to only include those matching the current listingId
+          const filteredSessions = response.data.data.filter(
+            (session) => session.storageLocationId === listingId
+          );
+          setSessions(filteredSessions);
+          // Automatically select the first session if only one matches
+          if (filteredSessions.length === 1) {
+            setSelectedSessionId(filteredSessions[0].id);
+          }
         } else {
           throw new Error(response.data.message || "Failed to fetch sessions");
         }
@@ -102,7 +116,7 @@ const MessagesTabContent = ({ lenderId }: { lenderId: string }) => {
       }
     };
     fetchSessions();
-  }, []);
+  }, [lenderId, listingId]);
 
   // TODO: Could cache this?
   // Fetch messages when a session is selected
@@ -385,7 +399,9 @@ export const LenderDisplay: React.FC<LenderDisplayProps> = ({
         <DetailsTabContent listing={listing} />
       </TabsContent>
       <TabsContent value="messages" className="mt-4">
-        {currentUserId && <MessagesTabContent lenderId={currentUserId} />}
+        {currentUserId && (
+          <MessagesTabContent lenderId={currentUserId} listingId={listing.id} />
+        )}
       </TabsContent>
       <TabsContent value="status" className="mt-4">
         <StatusTabContent listingId={listing.id} />

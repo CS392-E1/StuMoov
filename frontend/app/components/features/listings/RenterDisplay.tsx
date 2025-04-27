@@ -88,7 +88,8 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
           );
           const response = await getSessionByParticipants(
             currentUserId,
-            listing.lenderId
+            listing.lenderId,
+            listing.id
           );
           if (response.status === 200 && response.data.data) {
             console.log("Existing session found:", response.data.data.id);
@@ -109,7 +110,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
       };
       fetchSession();
     }
-  }, [activeTab, sessionId, currentUserId, listing.lenderId]);
+  }, [activeTab, sessionId, currentUserId, listing.lenderId, listing.id]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !listing.lenderId) return;
@@ -117,8 +118,17 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     try {
       let sid = sessionId;
       if (!sid) {
-        console.log("Creating session with:", currentUserId, listing.lenderId);
-        const sessionRes = await createSession(currentUserId, listing.lenderId);
+        console.log(
+          "Creating session with:",
+          currentUserId,
+          listing.lenderId,
+          listing.id
+        );
+        const sessionRes = await createSession(
+          currentUserId,
+          listing.lenderId,
+          listing.id
+        );
         if (
           sessionRes.status >= 200 &&
           sessionRes.status < 300 &&
