@@ -21,6 +21,8 @@ public class StorageLocation : BaseModel
     public string Name { get; set; }  // Name of the storage location
     [Column("description")]
     public string Description { get; set; } // Description of the storage location
+    [Column("address")]
+    public string Address { get; set; } // Address of the storage location
     [Column("lat")]
     [Required]
     public double Lat { get; set; } // Latitude coordinate
@@ -53,6 +55,7 @@ public class StorageLocation : BaseModel
     public StorageLocation(Lender lender,
                            string name,
                            string description,
+                           string address,
                            double lat,
                            double lng,
                            double storageLength,
@@ -65,6 +68,7 @@ public class StorageLocation : BaseModel
         LenderId = lender.Id; // userId is also assigned by the database system
         Name = name;
         Description = description;
+        Address = address;
         Lat = lat;
         Lng = lng;
         StorageLength = storageLength;
