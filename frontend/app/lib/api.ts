@@ -128,6 +128,17 @@ export async function getMessagesBySessionId(
   });
 }
 
+export async function createSession(
+  renterId: string,
+  lenderId: string
+): Promise<AxiosResponse<ApiResponse<Session>>> {
+  return axios.post(
+    "/chat/sessions",
+    { renterId, lenderId },
+    { withCredentials: true }
+  );
+}
+
 export async function sendMessage(
   sessionId: string,
   content: string
