@@ -3,7 +3,7 @@ using Supabase.Postgrest.Attributes;
 using System.ComponentModel.DataAnnotations;
 using StuMoov.Models.UserModel;
 using StuMoov.Models.BookingModel;
-
+using StuMoov.Models.StorageLocationModel;
 namespace StuMoov.Models.ChatModel
 {
     [Table("chat_sessions")]
@@ -26,6 +26,10 @@ namespace StuMoov.Models.ChatModel
         public Guid? BookingId { get; set; }
         [Reference(typeof(Booking), ReferenceAttribute.JoinType.Inner, true, "booking_id")]
         public Booking? Booking { get; private set; }
+        [Column("storage_location_id")]
+        public Guid? StorageLocationId { get; set; }
+        [Reference(typeof(StorageLocation), ReferenceAttribute.JoinType.Inner, true, "storage_location_id")]
+        public StorageLocation? StorageLocation { get; private set; }
         [Column("created_at")]
         public DateTime CreatedAt { get; private set; }
         [Column("updated_at")]
@@ -38,12 +42,13 @@ namespace StuMoov.Models.ChatModel
             // The private modifier restricts its usage to EF Core only
         }
 
-        public ChatSession(Renter renter, Lender lender)
+        public ChatSession(Renter renter, Lender lender, StorageLocation storageLocation)
         {
             Id = Guid.NewGuid();
             RenterId = renter.Id;
             LenderId = lender.Id;
             BookingId = null;
+            StorageLocationId = storageLocation.Id;
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }

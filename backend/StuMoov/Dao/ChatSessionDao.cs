@@ -114,5 +114,19 @@ namespace StuMoov.Dao
                 .Include(cs => cs.Lender)
                 .ToListAsync();
         }
+
+        public async Task<ChatSession?> GetByParticipantsAndListingAsync(
+            Guid renterId,
+            Guid lenderId,
+            Guid storageLocationId)
+        {
+            return await _dbContext.ChatSessions
+                .Include(cs => cs.Renter)
+                .Include(cs => cs.Lender)
+                .Include(cs => cs.StorageLocation)
+                .FirstOrDefaultAsync(cs => cs.RenterId == renterId &&
+                                            cs.LenderId == lenderId &&
+                                            cs.StorageLocationId == storageLocationId);
+        }
     }
 }

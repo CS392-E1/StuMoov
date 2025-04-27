@@ -53,9 +53,12 @@ namespace StuMoov.Controllers
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/chat/sessions/participants?renterId={renterId}&lenderId={lenderId}
+        // GET: api/chat/sessions/participants?renterId={renterId}&lenderId={lenderId}&storageLocationId={storageLocationId}
         [HttpGet("sessions/participants")]
-        public async Task<IActionResult> GetSessionByParticipants([FromQuery] Guid renterId, [FromQuery] Guid lenderId)
+        public async Task<IActionResult> GetSessionByParticipants(
+            [FromQuery] Guid renterId,
+            [FromQuery] Guid lenderId,
+            [FromQuery] Guid storageLocationId)
         {
             // Ensure the current user is in the session
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -68,7 +71,11 @@ namespace StuMoov.Controllers
                 return Forbid();
             }
 
-            Response response = await _chatSessionService.GetSessionByParticipantsAsync(renterId, lenderId);
+            Response response = await _chatSessionService.GetSessionByParticipantsAsync(
+                renterId,
+                lenderId,
+                storageLocationId
+            );
             return StatusCode(response.Status, response);
         }
 
@@ -81,7 +88,11 @@ namespace StuMoov.Controllers
                 return BadRequest(new Response(StatusCodes.Status400BadRequest, "Invalid request body.", ModelState));
             }
 
-            Response response = await _chatSessionService.CreateSessionAsync(request.RenterId, request.LenderId);
+            Response response = await _chatSessionService.CreateSessionAsync(
+                request.RenterId,
+                request.LenderId,
+                request.StorageLocationId
+            );
             return StatusCode(response.Status, response);
         }
 
@@ -118,6 +129,7 @@ namespace StuMoov.Controllers
     {
         public Guid RenterId { get; set; }
         public Guid LenderId { get; set; }
+        public Guid StorageLocationId { get; set; }
     }
 
     public class SendMessageRequest

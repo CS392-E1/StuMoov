@@ -9,6 +9,7 @@ using StuMoov.Models;
 using StuMoov.Models.BookingModel;
 using StuMoov.Models.ChatModel;
 using StuMoov.Models.UserModel;
+using StuMoov.Models.StorageLocationModel;
 
 namespace StuMoov.Services.ChatService
 {
@@ -17,17 +18,20 @@ namespace StuMoov.Services.ChatService
         private readonly ChatSessionDao _chatSessionDao;
         private readonly UserDao _userDao;
         private readonly BookingDao _bookingDao;
+        private readonly StorageLocationDao _storageLocationDao;
         private readonly ILogger<ChatSessionService> _logger;
 
         public ChatSessionService(
             ChatSessionDao chatSessionDao,
             UserDao userDao,
             BookingDao bookingDao,
+            StorageLocationDao storageLocationDao,
             ILogger<ChatSessionService> logger)
         {
             _chatSessionDao = chatSessionDao;
             _userDao = userDao;
             _bookingDao = bookingDao;
+            _storageLocationDao = storageLocationDao;
             _logger = logger;
         }
 
@@ -82,12 +86,15 @@ namespace StuMoov.Services.ChatService
             }
         }
 
-        // Get an existing chat session between a specific renter and lender
-        public async Task<Response> GetSessionByParticipantsAsync(Guid renterId, Guid lenderId)
+        // Get an existing chat session between a specific renter, lender, and for a specific listing
+        public async Task<Response> GetSessionByParticipantsAsync(
+            Guid renterId,
+            Guid lenderId,
+            Guid storageLocationId)
         {
-            if (renterId == Guid.Empty || lenderId == Guid.Empty)
+            if (renterId == Guid.Empty || lenderId == Guid.Empty || storageLocationId == Guid.Empty)
             {
-                return new Response(StatusCodes.Status400BadRequest, "Renter ID and Lender ID cannot be empty.", null);
+                return new Response(StatusCodes.Status400BadRequest, "Renter ID, Lender ID, and Storage Location ID cannot be empty.", null);
             }
             if (renterId == lenderId)
             {
@@ -96,18 +103,11 @@ namespace StuMoov.Services.ChatService
 
             try
             {
-                // Validate users exist
-                User? renterUser = await _userDao.GetUserByIdAsync(renterId);
-                User? lenderUser = await _userDao.GetUserByIdAsync(lenderId);
-
-                if (renterUser == null || lenderUser == null)
-                {
-                    return new Response(StatusCodes.Status404NotFound, "Session not found (one or both users do not exist).", null);
-                }
-
-                // Check if a session exists between these two
-                List<ChatSession>? existingSessions = await _chatSessionDao.GetByRenterIdAsync(renterId);
-                ChatSession? existingSession = existingSessions?.FirstOrDefault(s => s.LenderId == lenderId);
+                ChatSession? existingSession = await _chatSessionDao.GetByParticipantsAndListingAsync(
+                    renterId,
+                    lenderId,
+                    storageLocationId
+                );
 
                 if (existingSession != null)
                 {
@@ -115,22 +115,25 @@ namespace StuMoov.Services.ChatService
                 }
                 else
                 {
-                    return new Response(StatusCodes.Status404NotFound, "Chat session between the specified participants not found.", null);
+                    return new Response(StatusCodes.Status404NotFound, "Chat session between the specified participants for this listing not found.", null);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting chat session between Renter {renterId} and Lender {lenderId}.", renterId, lenderId);
+                _logger.LogError(ex, $"Error getting chat session between Renter {renterId}, Lender {lenderId}, and Listing {storageLocationId}.", renterId, lenderId, storageLocationId);
                 return new Response(StatusCodes.Status500InternalServerError, "An error occurred while getting the chat session.", null);
             }
         }
 
-        // Create a new chat session between a specific renter and lender
-        public async Task<Response> CreateSessionAsync(Guid renterId, Guid lenderId)
+        // Create a new chat session between a specific renter, lender, and for a specific listing
+        public async Task<Response> CreateSessionAsync(
+            Guid renterId,
+            Guid lenderId,
+            Guid storageLocationId)
         {
-            if (renterId == Guid.Empty || lenderId == Guid.Empty)
+            if (renterId == Guid.Empty || lenderId == Guid.Empty || storageLocationId == Guid.Empty)
             {
-                return new Response(StatusCodes.Status400BadRequest, "Renter ID and Lender ID cannot be empty.", null);
+                return new Response(StatusCodes.Status400BadRequest, "Renter ID, Lender ID, and Storage Location ID cannot be empty.", null);
             }
             if (renterId == lenderId)
             {
@@ -139,7 +142,7 @@ namespace StuMoov.Services.ChatService
 
             try
             {
-                // Validate both users exist and have the correct roles
+                // Validate Renter and Lender exist and have correct roles
                 User? renterUser = await _userDao.GetUserByIdAsync(renterId);
                 User? lenderUser = await _userDao.GetUserByIdAsync(lenderId);
 
@@ -147,8 +150,6 @@ namespace StuMoov.Services.ChatService
                 {
                     return new Response(StatusCodes.Status404NotFound, "Renter or Lender not found.", null);
                 }
-
-                // Ensure the users have the expected roles
                 if (!(renterUser is Renter renter))
                 {
                     return new Response(StatusCodes.Status400BadRequest, $"User {renterId} is not a Renter.", null);
@@ -158,31 +159,47 @@ namespace StuMoov.Services.ChatService
                     return new Response(StatusCodes.Status400BadRequest, $"User {lenderId} is not a Lender.", null);
                 }
 
-                // Check if a session already exists to prevent duplicates
-                List<ChatSession>? existingSessions = await _chatSessionDao.GetByRenterIdAsync(renterId);
-                if (existingSessions?.Any(s => s.LenderId == lenderId) ?? false)
+                // Validate StorageLocation exists and belongs to the Lender
+                StorageLocation? storageLocation = await _storageLocationDao.GetByIdAsync(storageLocationId);
+                if (storageLocation == null)
                 {
-                    return new Response(StatusCodes.Status409Conflict, "A chat session already exists between these participants.", null);
+                    return new Response(StatusCodes.Status404NotFound, $"Storage Location with ID {storageLocationId} not found.", null);
+                }
+                if (storageLocation.LenderId != lenderId)
+                {
+                    return new Response(StatusCodes.Status400BadRequest, $"Storage Location does not belong to the specified Lender.", null);
+                }
+
+                // Check if a session already exists
+                ChatSession? existingSession = await _chatSessionDao.GetByParticipantsAndListingAsync(
+                    renterId,
+                    lenderId,
+                    storageLocationId
+                );
+
+                if (existingSession != null)
+                {
+                    // Return existing session if found
+                    return new Response(StatusCodes.Status200OK, "Chat session already exists.", existingSession);
                 }
 
                 // Create a new session if one doesn't exist
-                ChatSession newSession = new ChatSession(renter, lender);
+                ChatSession newSession = new ChatSession(renter, lender, storageLocation);
                 ChatSession? createdSession = await _chatSessionDao.AddAsync(newSession);
 
                 if (createdSession == null)
                 {
-                    _logger.LogError("Failed to add new chat session to DB between Renter {RenterId} and Lender {LenderId}", renterId, lenderId);
+                    _logger.LogError("Failed to add new chat session to DB between Renter {RenterId}, Lender {LenderId} for Listing {StorageLocationId}", renterId, lenderId, storageLocationId);
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to create a new chat session.", null);
                 }
 
-                // Refetch to include navigation properties (Renter, Lender)
                 ChatSession? detailedSession = await _chatSessionDao.GetByIdAsync(createdSession.Id);
 
                 return new Response(StatusCodes.Status201Created, "New chat session created successfully.", detailedSession ?? createdSession);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error creating chat session between Renter {renterId} and Lender {lenderId}.", renterId, lenderId);
+                _logger.LogError(ex, $"Error creating chat session between Renter {renterId}, Lender {lenderId} for Listing {storageLocationId}.", renterId, lenderId, storageLocationId);
                 return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the chat session.", null);
             }
         }
