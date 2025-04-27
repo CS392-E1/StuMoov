@@ -38,12 +38,19 @@ namespace StuMoov.Models.ChatModel
             // The private modifier restricts its usage to EF Core only
         }
 
-        public ChatSession(Renter renter, Lender lender, Booking booking) { 
+        public ChatSession(Renter renter, Lender lender)
+        {
             Id = Guid.NewGuid();
             RenterId = renter.Id;
             LenderId = lender.Id;
-            BookingId = booking.Id;
+            BookingId = null;
             CreatedAt = DateTime.Now;
+        }
+
+        public void SetBooking(Booking booking)
+        {
+            BookingId = booking.Id;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

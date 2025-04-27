@@ -135,10 +135,16 @@ builder.Services.AddScoped<StripeConnectAccountDao>(sp =>
     return new StripeConnectAccountDao(context);
 });
 
-builder.Services.AddScoped<MessageDao>(sp =>
+builder.Services.AddScoped<ChatSessionDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
-    return new MessageDao(context);
+    return new ChatSessionDao(context);
+});
+
+builder.Services.AddScoped<ChatMessageDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new ChatMessageDao(context);
 });
 
 builder.Services.AddControllers()
