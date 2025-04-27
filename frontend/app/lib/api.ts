@@ -99,9 +99,12 @@ export async function getStorageLocationsByUserId(
 }
 
 export async function createStorageLocation(
-  storageLocation: StorageLocation
+  storageData: Omit<
+    StorageLocation,
+    "id" | "createdAt" | "updatedAt" | "imageUrl"
+  >
 ): Promise<AxiosResponse<ApiResponse<StorageLocation>>> {
-  return axios.post("/storage", storageLocation);
+  return axios.post("/storage", storageData);
 }
 
 export async function updateStorageLocation(

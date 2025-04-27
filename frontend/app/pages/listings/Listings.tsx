@@ -18,6 +18,15 @@ export default function Listings() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
 
+  // Handler to add a new location
+  const handleAddLocation = (newLocation: StorageLocation) => {
+    setLocations((prevLocations) => [...prevLocations, newLocation]);
+    if (mapRef.current) {
+      mapRef.current.panTo(newLocation.lat, newLocation.lng);
+      mapRef.current.setZoom(16);
+    }
+  };
+
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -45,9 +54,9 @@ export default function Listings() {
   const handleListingClick = (listing: StorageLocation) => {
     setSelectedListing(listing);
     setIsModalOpen(true);
-    console.log(
-      `Clicked listing: ${listing.id}, Owner ID: ${listing.lenderId}, Current User ID: ${user?.id}`
-    );
+    // console.log(
+    //   `Clicked listing: ${listing.id}, Owner ID: ${listing.lenderId}, Current User ID: ${user?.id}`
+    // );
     if (mapRef.current) {
       mapRef.current.panTo(listing.lat, listing.lng);
       mapRef.current.setZoom(16);
@@ -69,7 +78,11 @@ export default function Listings() {
           />
         </div>
         <div className="w-2/3 relative">
-          <GoogleMaps ref={mapRef} locations={locations} />
+          <GoogleMaps
+            ref={mapRef}
+            locations={locations}
+            onAddLocation={handleAddLocation}
+          />
         </div>
       </div>
       <Modal

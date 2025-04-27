@@ -7,10 +7,10 @@ export type StorageLocation = {
   lat: number;
   lng: number;
   price: number | null;
-  length: number | null;
-  width: number | null;
-  height: number | null;
-  imageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  storageLength: number | null;
+  storageWidth: number | null;
+  storageHeight: number | null;
+  imageUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };

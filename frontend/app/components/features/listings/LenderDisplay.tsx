@@ -39,8 +39,10 @@ const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
         <div>
           <h4 className="font-semibold text-lg mb-1">Dimensions</h4>
           <p className="text-gray-700 dark:text-gray-300">
-            {listing.length && listing.width && listing.height
-              ? `${listing.length} x ${listing.width} x ${listing.height}`
+            {listing.storageLength != null &&
+            listing.storageWidth != null &&
+            listing.storageHeight != null
+              ? `${listing.storageLength} x ${listing.storageWidth} x ${listing.storageHeight}`
               : "Not specified"}
           </p>
         </div>
