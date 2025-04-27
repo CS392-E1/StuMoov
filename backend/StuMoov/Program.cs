@@ -14,6 +14,7 @@ using StuMoov.Services.AuthService;
 using Stripe;
 using StuMoov.Services.StripeService;
 using System.Security.Claims;
+using StuMoov.Services.ChatService;
 
 var builder = WebApplication.CreateBuilder(args);
 var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
@@ -106,6 +107,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton(supabase);
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<StripeService>();
+builder.Services.AddScoped<ChatSessionService>();
+builder.Services.AddScoped<ChatMessageService>();
 
 builder.Services.AddScoped<StorageLocationDao>(sp =>
 {
