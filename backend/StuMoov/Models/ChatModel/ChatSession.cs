@@ -44,7 +44,8 @@ namespace StuMoov.Models.ChatModel
             RenterId = renter.Id;
             LenderId = lender.Id;
             BookingId = null;
-            CreatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public void SetBooking(Booking booking)

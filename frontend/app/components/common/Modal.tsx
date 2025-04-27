@@ -6,21 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { StorageLocation } from "@/types/storage";
 import { LenderDisplay } from "@/components/features/listings/LenderDisplay";
-import { RenterDisplay } from "@/components/features/listings/RenterDisplay"
-
-// TODO: Implement renter display
-/* const RenterDisplay = ({
-  listing,
-  currentUserId,
-}: {
-  listing: StorageLocation;
-  currentUserId: string | null;
-}) => (
-  <div>
-    Renter View for {listing.name} (Details/Messages/Status Tab Here) - User:{" "}
-    {currentUserId}
-  </div>
-); */
+import { RenterDisplay } from "@/components/features/listings/RenterDisplay";
 
 type ModalProps = {
   open: boolean;

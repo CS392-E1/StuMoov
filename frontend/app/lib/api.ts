@@ -157,3 +157,16 @@ export async function getBookingsByStorageLocationId(
     withCredentials: true,
   });
 }
+
+export async function getSessionByParticipants(
+  renterId: string,
+  lenderId: string
+): Promise<AxiosResponse<ApiResponse<Session>>> {
+  return axios.get(`/chat/sessions/participants`, {
+    params: { renterId, lenderId },
+    withCredentials: true,
+    validateStatus: function (status) {
+      return (status >= 200 && status < 300) || status === 404;
+    },
+  });
+}

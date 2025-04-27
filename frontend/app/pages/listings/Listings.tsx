@@ -54,9 +54,6 @@ export default function Listings() {
   const handleListingClick = (listing: StorageLocation) => {
     setSelectedListing(listing);
     setIsModalOpen(true);
-    // console.log(
-    //   `Clicked listing: ${listing.id}, Owner ID: ${listing.lenderId}, Current User ID: ${user?.id}`
-    // );
     if (mapRef.current) {
       mapRef.current.panTo(listing.lat, listing.lng);
       mapRef.current.setZoom(16);
@@ -85,6 +82,7 @@ export default function Listings() {
           />
         </div>
       </div>
+
       <Modal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
