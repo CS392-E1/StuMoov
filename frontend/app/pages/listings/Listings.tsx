@@ -10,10 +10,22 @@ import Modal from "@/components/common/Modal";
 import { useGeocoding } from "@/hooks/use-geocoding";
 import { getStorageLocations } from "@/lib/api";
 import { getStorageLocationsByCoordinates } from "@/lib/api";
-import { getStorageLocationsByDimensions, getStorageLocationsByPrice, getStorageLocationsByCapacity } from "@/lib/api";
+import {
+  getStorageLocationsByDimensions,
+  getStorageLocationsByPrice,
+  getStorageLocationsByCapacity,
+} from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
-const FilterPopup = ({ onClose, onApplyFilters, filters }: { onClose: () => void; onApplyFilters: (filters: any) => void, filters: any }) => {
+const FilterPopup = ({
+  onClose,
+  onApplyFilters,
+  filters,
+}: {
+  onClose: () => void;
+  onApplyFilters: (filters: any) => void;
+  filters: any;
+}) => {
   const [length, setLength] = useState<number | string>(filters.length || "");
   const [width, setWidth] = useState<number | string>(filters.width || "");
   const [height, setHeight] = useState<number | string>(filters.height || "");
@@ -28,11 +40,11 @@ const FilterPopup = ({ onClose, onApplyFilters, filters }: { onClose: () => void
       volume: volume ? parseFloat(volume as string) : undefined,
       price: price ? parseFloat(price as string) : undefined,
     });
-    onClose();  // Close the filter popup after applying
+    onClose(); // Close the filter popup after applying
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-opacity-50 bg-black flex justify-center items-center">
+    <div className="fixed inset-0 z-50 bg-opacity-50 backdrop-blur-sm flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <h3 className="font-semibold text-xl mb-4">Filter Storage Locations</h3>
         <div className="flex flex-col gap-4">
@@ -41,35 +53,35 @@ const FilterPopup = ({ onClose, onApplyFilters, filters }: { onClose: () => void
             value={length}
             onChange={(e) => setLength(e.target.value)}
             placeholder="Length"
-            className="input"
+            className="input px-4 py-2"
           />
           <input
             type="number"
             value={width}
             onChange={(e) => setWidth(e.target.value)}
             placeholder="Width"
-            className="input"
+            className="input px-4 py-2"
           />
           <input
             type="number"
             value={height}
             onChange={(e) => setHeight(e.target.value)}
             placeholder="Height"
-            className="input"
+            className="input px-4 py-2"
           />
           <input
             type="number"
             value={volume}
             onChange={(e) => setVolume(e.target.value)}
             placeholder="Volume"
-            className="input"
+            className="input px-4 py-2"
           />
           <input
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="Max Price"
-            className="input"
+            className="input px-4 py-2"
           />
           <button
             className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
@@ -77,10 +89,7 @@ const FilterPopup = ({ onClose, onApplyFilters, filters }: { onClose: () => void
           >
             Apply Filters
           </button>
-          <button
-            className="mt-2 text-red-500"
-            onClick={onClose}
-          >
+          <button className="mt-2 text-red-500" onClick={onClose}>
             Close
           </button>
         </div>
@@ -92,7 +101,8 @@ const FilterPopup = ({ onClose, onApplyFilters, filters }: { onClose: () => void
 export default function Listings() {
   const mapRef = useRef<GoogleMapsRef>(null);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
-  const [selectedListing, setSelectedListing] = useState<StorageLocation | null>(null);
+  const [selectedListing, setSelectedListing] =
+    useState<StorageLocation | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const { user } = useAuth();
@@ -117,9 +127,17 @@ export default function Listings() {
         if (Object.keys(filters).length === 0) {
           response = await getStorageLocations();
         } else {
-          response = await getStorageLocationsByDimensions(filters.length, filters.width, filters.height);
+          response = await getStorageLocationsByDimensions(
+            filters.length,
+            filters.width,
+            filters.height
+          );
         }
-        if (response.status >= 200 && response.status < 300 && response.data?.data) {
+        if (
+          response.status >= 200 &&
+          response.status < 300 &&
+          response.data?.data
+        ) {
           setLocations(response.data.data);
         } else {
           console.error(
@@ -151,12 +169,22 @@ export default function Listings() {
       const result = await geocodeAddress(query);
       console.log("Geocoded coordinates:", result);
 
-      const response = await getStorageLocationsByCoordinates(result.lat, result.lng);
+      const response = await getStorageLocationsByCoordinates(
+        result.lat,
+        result.lng
+      );
 
-      if (response.status >= 200 && response.status < 300 && response.data?.data) {
+      if (
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data?.data
+      ) {
         setLocations(response.data.data);
       } else {
-        console.error("Failed to fetch storage locations:", response.data?.message);
+        console.error(
+          "Failed to fetch storage locations:",
+          response.data?.message
+        );
       }
     } catch (err) {
       console.error("Geocoding failed:", err);
@@ -168,7 +196,11 @@ export default function Listings() {
     let filteredLocations: StorageLocation[] = [];
 
     if (newFilters.length || newFilters.width || newFilters.height) {
-      const response = await getStorageLocationsByDimensions(newFilters.length, newFilters.width, newFilters.height);
+      const response = await getStorageLocationsByDimensions(
+        newFilters.length,
+        newFilters.width,
+        newFilters.height
+      );
       filteredLocations = response.data.data || [];
     }
 
