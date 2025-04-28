@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models;
+using StuMoov.Models.PaymentModel;
 using StuMoov.Services.StripeService;
 using StuMoov.Dao;
 using StuMoov.Models.UserModel;
 using Stripe;
 using Stripe.Checkout;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace StuMoov.Controllers
 {
@@ -15,20 +19,21 @@ namespace StuMoov.Controllers
     [Route("api/[controller]")]
     public class StripeController : ControllerBase
     {
-        private readonly StripeService _stripeService;
+        private readonly StuMoov.Services.StripeService.StripeService _stripeService;
+        private readonly PaymentDao _paymentDao;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<StripeService> _logger;
+        private readonly ILogger<StripeController> _logger;
 
         public StripeController(
-            StripeCustomerDao stripeCustomerDao,
-            StripeConnectAccountDao stripeConnectAccountDao,
-            UserDao userDao,
+            StuMoov.Services.StripeService.StripeService stripeService,
+            PaymentDao paymentDao,
             IConfiguration configuration,
-            ILogger<StripeService> logger)
+            ILogger<StripeController> logger)
         {
+            _stripeService = stripeService;
+            _paymentDao = paymentDao;
             _configuration = configuration;
             _logger = logger;
-            _stripeService = new StripeService(configuration, stripeCustomerDao, stripeConnectAccountDao, userDao, _logger);
         }
 
         [HttpPost("connect/accounts")]
@@ -132,6 +137,7 @@ namespace StuMoov.Controllers
             }
 
             // Make sure the user has a Stripe customer account
+            // TODO: Create stripe customer account for all renters on registration
             StripeCustomer? customer = await _stripeService.CreateCustomerForRenterAsync(userId);
             if (customer == null || string.IsNullOrEmpty(customer.StripeCustomerId))
             {
@@ -142,7 +148,7 @@ namespace StuMoov.Controllers
             string? successUrl = $"{baseUrl}/payment/success?session_id={{CHECKOUT_SESSION_ID}}";
             string? cancelUrl = $"{baseUrl}/payment/cancel";
 
-            // Calculate application fee (platform fee)
+            // Calculate application fee (our fee)
             decimal applicationFeePercent = _configuration.GetValue<decimal>("Stripe:ApplicationFeePercent", 3m); // Default to 3%
             long applicationFeeAmount = (long)(request.Amount * (applicationFeePercent / 100m));
 
@@ -164,77 +170,189 @@ namespace StuMoov.Controllers
             }
         }
 
+        // I'm currently using the Stripe CLI to test the webhook locally
         [HttpPost("webhook")]
         [AllowAnonymous]
         public async Task<IActionResult> HandleWebhook()
         {
             string json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-
-            // Get webhook secret from configuration
             string? webhookSecret = _configuration["Stripe:WebhookSecret"];
+            string? signatureHeader = Request.Headers["Stripe-Signature"];
+
             if (string.IsNullOrEmpty(webhookSecret))
             {
+                _logger.LogError("Stripe webhook secret is not configured.");
                 return BadRequest(new Response(400, "Webhook secret not configured", null));
             }
-
-            // Verify webhook signature
-            string? signatureHeader = HttpContext.Request.Headers["Stripe-Signature"];
             if (string.IsNullOrEmpty(signatureHeader))
             {
+                _logger.LogWarning("Webhook request missing Stripe-Signature header.");
                 return BadRequest(new Response(400, "Missing Stripe signature", null));
             }
 
+            Event stripeEvent;
             try
             {
-                Event stripeEvent = EventUtility.ConstructEvent(
-                    json,
-                    signatureHeader,
-                    webhookSecret
-                );
+                stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, webhookSecret);
+                _logger.LogInformation($"Webhook received: {stripeEvent.Id}, Type: {stripeEvent.Type}");
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, $"Webhook signature verification failed: {ex.Message}");
+                return BadRequest(new Response(400, $"Webhook error: {ex.Message}", null));
+            }
 
-                // Handle the event based on its type
+            // Handle each webhook event
+            try
+            {
                 switch (stripeEvent.Type)
                 {
                     case "account.updated":
                         await HandleAccountUpdatedEvent(stripeEvent);
                         break;
-
                     case "payment_intent.succeeded":
                         await HandlePaymentIntentSucceededEvent(stripeEvent);
                         break;
 
+                    // --- Invoice Events --- 
+                    case "invoice.paid":
+                        await HandleInvoicePaidAsync(stripeEvent);
+                        break;
+                    case "invoice.payment_failed":
+                        await HandleInvoicePaymentFailedAsync(stripeEvent);
+                        break;
+                    case "invoice.voided":
+                        await HandleInvoiceVoidedAsync(stripeEvent);
+                        break;
+                    case "invoice.marked_uncollectible":
+                        await HandleInvoicePaymentFailedAsync(stripeEvent, isUncollectible: true);
+                        break;
+
                     default:
-                        // Unhandled event type
+                        _logger.LogInformation($"Unhandled webhook event type: {stripeEvent.Type}");
                         break;
                 }
-
-                return Ok();
             }
-            catch (StripeException ex)
+            catch (Exception ex)
             {
-                return BadRequest(new Response(400, $"Webhook error: {ex.Message}", null));
+                _logger.LogError(ex, $"Error processing webhook event {stripeEvent.Id} (Type: {stripeEvent.Type}): {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response(500, "Internal server error processing webhook", null));
             }
+
+            return Ok();
         }
 
         // Helper methods for webhook event handling
         private async Task HandleAccountUpdatedEvent(Event stripeEvent)
         {
-            Account? account = stripeEvent.Data.Object as Account;
-            if (account == null) return;
-
-            // Use the StripeService to update account status
-            // The service will handle finding and updating the account
+            if (stripeEvent.Data.Object is not Account account) return;
+            _logger.LogInformation($"Processing account.updated event for Account: {account.Id}");
             await _stripeService.UpdateAccountFromWebhookAsync(account);
         }
 
-        private async Task HandlePaymentIntentSucceededEvent(Event stripeEvent)
+        private Task HandlePaymentIntentSucceededEvent(Event stripeEvent)
         {
-            PaymentIntent? paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-            if (paymentIntent == null) return;
+            if (stripeEvent.Data.Object is not PaymentIntent paymentIntent) return Task.CompletedTask;
+            _logger.LogInformation($"Processing payment_intent.succeeded event for PaymentIntent: {paymentIntent.Id}");
 
-            // TODO: Update payment entries in the db using the service
-            // Process successful payment (update booking status, notify users, etc.)
-            // await _stripeService.ProcessSuccessfulPaymentAsync(paymentIntent);
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleInvoicePaidAsync(Event stripeEvent)
+        {
+            if (stripeEvent.Data.Object is not Invoice invoice) return;
+            _logger.LogInformation($"Processing invoice.paid event for Invoice: {invoice.Id}");
+
+            Payment? payment = await _paymentDao.GetByStripeInvoiceIdAsync(invoice.Id);
+            if (payment == null)
+            {
+                _logger.LogWarning($"Received invoice.paid webhook for Invoice {invoice.Id}, but no matching Payment record found.");
+                return;
+            }
+
+            // Update the status
+            if (payment.Status != PaymentStatus.PAID)
+            {
+                Payment? updatedPayment = await _paymentDao.UpdatePaymentStatusAsync(payment.Id, PaymentStatus.PAID);
+                if (updatedPayment != null)
+                {
+                    _logger.LogInformation($"Updated Payment record {payment.Id} status to PAID for Invoice {invoice.Id}.");
+                    // TODO: Potentially trigger other actions (e.g., notify user, finalize booking steps)
+                }
+                else
+                {
+                    _logger.LogError($"Failed to update Payment record {payment.Id} status to PAID for Invoice {invoice.Id}.");
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Payment record {payment.Id} already marked as PAID for Invoice {invoice.Id}. No status change needed.");
+            }
+        }
+
+        private async Task HandleInvoicePaymentFailedAsync(Event stripeEvent, bool isUncollectible = false)
+        {
+            if (stripeEvent.Data.Object is not Invoice invoice) return;
+            string eventType = isUncollectible ? "invoice.marked_uncollectible" : "invoice.payment_failed";
+            _logger.LogInformation($"Processing {eventType} event for Invoice: {invoice.Id}");
+
+            Payment? payment = await _paymentDao.GetByStripeInvoiceIdAsync(invoice.Id);
+            if (payment == null)
+            {
+                _logger.LogWarning($"Received {eventType} webhook for Invoice {invoice.Id}, but no matching Payment record found.");
+                return;
+            }
+
+            // Update status to UNCOLLECTIBLE
+            PaymentStatus targetStatus = PaymentStatus.UNCOLLECTIBLE;
+            if (payment.Status != targetStatus)
+            {
+                Payment? updatedPayment = await _paymentDao.UpdatePaymentStatusAsync(payment.Id, targetStatus);
+                if (updatedPayment != null)
+                {
+                    _logger.LogInformation($"Updated Payment record {payment.Id} status to {targetStatus} for Invoice {invoice.Id}.");
+                    // TODO: Could notify the renter or admin here
+                }
+                else
+                {
+                    _logger.LogError($"Failed to update Payment record {payment.Id} status to {targetStatus} for Invoice {invoice.Id}.");
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Payment record {payment.Id} already marked as {targetStatus} for Invoice {invoice.Id}. No status change needed.");
+            }
+        }
+
+        private async Task HandleInvoiceVoidedAsync(Event stripeEvent)
+        {
+            if (stripeEvent.Data.Object is not Invoice invoice) return;
+            _logger.LogInformation($"Processing invoice.voided event for Invoice: {invoice.Id}");
+
+            Payment? payment = await _paymentDao.GetByStripeInvoiceIdAsync(invoice.Id);
+            if (payment == null)
+            {
+                _logger.LogWarning($"Received invoice.voided webhook for Invoice {invoice.Id}, but no matching Payment record found.");
+                return;
+            }
+
+            // Update status to VOID
+            if (payment.Status != PaymentStatus.VOID)
+            {
+                Payment? updatedPayment = await _paymentDao.UpdatePaymentStatusAsync(payment.Id, PaymentStatus.VOID);
+                if (updatedPayment != null)
+                {
+                    _logger.LogInformation($"Updated Payment record {payment.Id} status to VOID for Invoice {invoice.Id}.");
+                }
+                else
+                {
+                    _logger.LogError($"Failed to update Payment record {payment.Id} status to VOID for Invoice {invoice.Id}.");
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Payment record {payment.Id} already marked as VOID for Invoice {invoice.Id}. No status change needed.");
+            }
         }
     }
 

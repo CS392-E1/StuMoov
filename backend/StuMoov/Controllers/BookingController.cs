@@ -93,9 +93,9 @@ namespace StuMoov.Controllers
 
         // PUT: api/bookings/{id}/confirm
         [HttpPut("{id}/confirm")]
-        public async Task<ActionResult<Response>> ConfirmBooking(Guid id, [FromBody] Guid paymentId)
+        public async Task<ActionResult<Response>> ConfirmBooking(Guid id)
         {
-            Response response = await _bookingService.ConfirmBookingAsync(id, paymentId);
+            Response response = await _bookingService.ConfirmBookingAsync(id);
             return StatusCode(response.Status, response);
         }
 

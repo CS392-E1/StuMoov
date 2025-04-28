@@ -1,5 +1,10 @@
 import axios, { AxiosResponse } from "axios";
-import { User, UserRole, StripeConnectAccount } from "@/types/user";
+import {
+  User,
+  UserRole,
+  StripeConnectAccount,
+  StripeCustomer,
+} from "@/types/user";
 import {
   ApiResponse,
   OnboardingLinkResponse,
@@ -254,6 +259,32 @@ export async function getImagesByStorageLocationId(
   storageLocationId: string
 ): Promise<AxiosResponse<ApiResponse<Image[]>>> {
   return axios.get(`/image/storage/${storageLocationId}`, {
+    withCredentials: true,
+  });
+}
+
+export async function createStripeCustomer(): Promise<
+  AxiosResponse<ApiResponse<StripeCustomer>>
+> {
+  return axios.post("/stripe/customers", {}, { withCredentials: true });
+}
+
+export async function confirmBooking(
+  bookingId: string
+): Promise<AxiosResponse<ApiResponse<Booking>>> {
+  return axios.put(
+    `/bookings/${bookingId}/confirm`,
+    {},
+    { withCredentials: true }
+  );
+}
+
+// Add function to get invoice URL
+export async function getInvoiceUrl(
+  paymentId: string
+): Promise<AxiosResponse<ApiResponse<string>>> {
+  // Returns the URL string
+  return axios.get(`/payments/${paymentId}/invoice-url`, {
     withCredentials: true,
   });
 }

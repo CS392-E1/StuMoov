@@ -4,6 +4,12 @@ using System.Threading.Tasks;
 using StuMoov.Dao;
 using StuMoov.Models.UserModel;
 using StuMoov.Models.UserModel.Enums;
+using StuMoov.Models.BookingModel;
+using StuMoov.Models.PaymentModel;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace StuMoov.Services.StripeService
 {
@@ -13,6 +19,8 @@ namespace StuMoov.Services.StripeService
         private readonly StripeCustomerDao _stripeCustomerDao;
         private readonly StripeConnectAccountDao _stripeConnectAccountDao;
         private readonly UserDao _userDao;
+        private readonly PaymentDao _paymentDao;
+        private readonly BookingDao _bookingDao;
         private readonly ILogger<StripeService> _logger;
 
         public StripeService(
@@ -20,13 +28,19 @@ namespace StuMoov.Services.StripeService
             StripeCustomerDao stripeCustomerDao,
             StripeConnectAccountDao stripeConnectAccountDao,
             UserDao userDao,
+            PaymentDao paymentDao,
+            BookingDao bookingDao,
             ILogger<StripeService> logger)
         {
             _configuration = configuration;
             _stripeCustomerDao = stripeCustomerDao;
             _stripeConnectAccountDao = stripeConnectAccountDao;
             _userDao = userDao;
+            _paymentDao = paymentDao;
+            _bookingDao = bookingDao;
             _logger = logger;
+
+            StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
         public async Task<Account> CreateConnectAccountAsync(string email, string userId)
@@ -76,7 +90,6 @@ namespace StuMoov.Services.StripeService
             // Create the Stripe Connect account
             Account account = await CreateConnectAccountAsync(lender.Email, lender.Id.ToString());
 
-            // Create and save a StripeConnectAccount record
             StripeConnectAccount connectAccount = new StripeConnectAccount(lender, account.Id);
             return await _stripeConnectAccountDao.AddAsync(connectAccount);
         }
@@ -107,7 +120,6 @@ namespace StuMoov.Services.StripeService
             // Create the account link
             AccountLink accountLink = await CreateAccountLinkAsync(connectAccount.StripeConnectAccountId, refreshUrl, returnUrl);
 
-            // Update the account link URL in the db
             await _stripeConnectAccountDao.UpdateAccountLinkUrlAsync(connectAccount.Id, accountLink.Url);
 
             return accountLink.Url;
@@ -130,9 +142,7 @@ namespace StuMoov.Services.StripeService
             // Get the latest account status from Stripe
             Account account = await GetAccountAsync(connectAccount.StripeConnectAccountId);
 
-            // Determine the account status based on Stripe's response
             StripeConnectAccountStatus status = DetermineAccountStatus(account);
-            // Update the status in the database
             return await _stripeConnectAccountDao.UpdateStatusAsync(connectAccount.Id, status, account.PayoutsEnabled == true);
         }
 
@@ -209,7 +219,6 @@ namespace StuMoov.Services.StripeService
             return await service.CreateAsync(options);
         }
 
-
         public async Task<StripeCustomer?> CreateCustomerForRenterAsync(Guid renterId)
         {
             // Get the renter from the database
@@ -223,7 +232,6 @@ namespace StuMoov.Services.StripeService
             StripeCustomer? existingCustomer = await _stripeCustomerDao.GetByUserIdAsync(renterId);
             if (existingCustomer != null)
             {
-                // If they exist but no Stripe ID, create one
                 if (string.IsNullOrEmpty(existingCustomer.StripeCustomerId))
                 {
                     var customer = await CreateCustomerAsync(renter.Email, renter.DisplayName!, renter.Id.ToString());
@@ -232,7 +240,6 @@ namespace StuMoov.Services.StripeService
                 return existingCustomer;
             }
 
-            // Create a new db entry
             StripeCustomer newCustomer = new StripeCustomer(renter);
             StripeCustomer? savedCustomer = await _stripeCustomerDao.AddAsync(newCustomer);
 
@@ -241,14 +248,12 @@ namespace StuMoov.Services.StripeService
                 // Create the Stripe customer
                 Customer customer = await CreateCustomerAsync(renter.Email, renter.DisplayName!, renter.Id.ToString());
 
-                // Update the db entry with the Stripe customer ID
                 return await _stripeCustomerDao.UpdateStripeDetailsAsync(renterId, customer.Id);
             }
 
             return null;
         }
 
-        // Method to handle account updates from webhooks
         public async Task<StripeConnectAccount?> UpdateAccountFromWebhookAsync(Account account)
         {
             if (account == null) return null;
@@ -265,6 +270,166 @@ namespace StuMoov.Services.StripeService
                 connectAccount.Id,
                 status,
                 account.PayoutsEnabled == true);
+        }
+
+        public async Task<Payment?> CreateAndSendInvoiceForBookingAsync(Guid bookingId)
+        {
+            _logger.LogInformation($"Creating invoice for Booking ID: {bookingId}");
+
+            try
+            {
+                Booking? booking = await _bookingDao.GetByIdAsync(bookingId);
+                if (booking == null)
+                {
+                    _logger.LogError($"Booking not found for ID: {bookingId}");
+                    return null;
+                }
+                if (booking.Renter == null || booking.StorageLocation == null || booking.Payment == null)
+                {
+                    _logger.LogError($"Booking {bookingId} is missing required related data (Renter, StorageLocation, or Payment).");
+                    return null;
+                }
+                if (booking.StorageLocation.Lender == null)
+                {
+                    _logger.LogError($"Lender information not found for StorageLocation {booking.StorageLocation.Id} in Booking {bookingId}");
+                    return null;
+                }
+
+                Guid lenderId = booking.StorageLocation.LenderId;
+
+                StripeCustomer? renterStripeInfo = await _stripeCustomerDao.GetByUserIdAsync(booking.RenterId);
+
+                if (renterStripeInfo == null || string.IsNullOrEmpty(renterStripeInfo.StripeCustomerId))
+                {
+                    _logger.LogError($"Stripe Customer ID not found for Renter ID: {booking.RenterId}");
+                    return null;
+                }
+                string renterStripeCustomerId = renterStripeInfo.StripeCustomerId;
+
+                StripeConnectAccount? lenderConnectInfo = await _stripeConnectAccountDao.GetByUserIdAsync(lenderId);
+                if (lenderConnectInfo == null || string.IsNullOrEmpty(lenderConnectInfo.StripeConnectAccountId))
+                {
+                    _logger.LogError($"Stripe Connect Account ID not found for Lender ID: {lenderId}");
+                    return null;
+                }
+                string lenderConnectAccountId = lenderConnectInfo.StripeConnectAccountId;
+
+                if (booking.Payment.Status != PaymentStatus.DRAFT)
+                {
+                    _logger.LogWarning($"Invoice creation skipped for Booking {bookingId}. Payment status is {booking.Payment.Status}, expected DRAFT.");
+                    return booking.Payment;
+                }
+
+                long amountInCents = (long)booking.TotalPrice;
+                decimal applicationFeePercent = _configuration.GetValue<decimal>("Stripe:ApplicationFeePercent", 3m);
+                long applicationFeeInCents = (long)Math.Round(amountInCents * (applicationFeePercent / 100m));
+                long amountTransferredInCents = amountInCents - applicationFeeInCents;
+
+                decimal localAmountCharged = booking.TotalPrice;
+                decimal localPlatformFee = (decimal)applicationFeeInCents;
+                decimal localAmountTransferred = (decimal)amountTransferredInCents;
+
+                _logger.LogInformation($"Calculated amounts for Booking {bookingId}: Total={amountInCents}c, Fee={applicationFeeInCents}c, Transferred={amountTransferredInCents}c");
+
+                // 1. Create the DRAFT Invoice first to get its ID
+                var invoiceOptions = new InvoiceCreateOptions
+                {
+                    Customer = renterStripeCustomerId,
+                    CollectionMethod = "send_invoice",
+                    DaysUntilDue = 5,
+                    TransferData = new InvoiceTransferDataOptions
+                    {
+                        Destination = lenderConnectAccountId,
+                    },
+                    ApplicationFeeAmount = applicationFeeInCents,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "bookingId", booking.Id.ToString() },
+                        { "paymentId", booking.PaymentId.ToString()! }
+                    },
+                    Description = $"Invoice for Booking {booking.Id}"
+                };
+
+                var invoiceService = new InvoiceService();
+                Invoice invoice = await invoiceService.CreateAsync(invoiceOptions);
+                _logger.LogInformation($"Created Draft Invoice {invoice.Id} for Booking {bookingId}");
+
+                // 2. Create the InvoiceItem
+                var invoiceItemOptions = new InvoiceItemCreateOptions
+                {
+                    Customer = renterStripeCustomerId,
+                    Amount = amountInCents,
+                    Currency = "usd",
+                    Description = $"Storage Rental: {booking.StorageLocation.Name} ({booking.StartDate.ToShortDateString()} - {booking.EndDate.ToShortDateString()}) - Booking ID: {booking.Id}",
+                    Invoice = invoice.Id
+                };
+
+                var invoiceItemService = new InvoiceItemService();
+                InvoiceItem invoiceItem = await invoiceItemService.CreateAsync(invoiceItemOptions);
+                _logger.LogInformation($"Created InvoiceItem {invoiceItem.Id} and linked it to Invoice {invoice.Id}");
+
+                // 3. Finalize the invoice
+                if (invoice.Status == "draft")
+                {
+                    _logger.LogInformation($"Attempting to finalize draft Invoice {invoice.Id}");
+                    try
+                    {
+                        InvoiceFinalizeOptions finalizeOptions = new InvoiceFinalizeOptions { AutoAdvance = true };
+                        invoice = await invoiceService.FinalizeInvoiceAsync(invoice.Id, finalizeOptions);
+                        _logger.LogInformation($"Successfully finalized Invoice {invoice.Id}. Status: {invoice.Status}");
+                    }
+                    catch (StripeException finalizeEx)
+                    {
+                        _logger.LogError(finalizeEx, $"Stripe error finalizing invoice {invoice.Id}: {finalizeEx.StripeError?.Message ?? finalizeEx.Message}");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning($"Invoice {invoice.Id} was not in draft status before finalization attempt (Status: {invoice.Status}).");
+                }
+
+                _logger.LogInformation($"Updating local payment record for Invoice {invoice.Id}");
+
+                PaymentStatus finalPaymentStatus = invoice.Status switch
+                {
+                    "open" => PaymentStatus.OPEN,
+                    "paid" => PaymentStatus.PAID,
+                    "void" => PaymentStatus.VOID,
+                    "uncollectible" => PaymentStatus.UNCOLLECTIBLE,
+                    _ => PaymentStatus.DRAFT
+                };
+                _logger.LogInformation($"Mapping final Invoice status '{invoice.Status}' to local PaymentStatus '{finalPaymentStatus}'");
+
+                Payment? updatedPayment = await _paymentDao.UpdatePaymentWithInvoiceDetailsAsync(
+                    booking.Payment.Id,
+                    invoice.Id,
+                    finalPaymentStatus,
+                    localAmountCharged,
+                    localPlatformFee,
+                    localAmountTransferred
+                );
+
+                if (updatedPayment == null)
+                {
+                    _logger.LogError($"Failed to update local Payment record {booking.PaymentId} after creating Stripe Invoice {invoice.Id}");
+                }
+                else
+                {
+                    _logger.LogInformation($"Successfully updated local Payment record {updatedPayment.Id} with Invoice details.");
+                }
+
+                return updatedPayment;
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, $"Stripe error creating invoice for Booking ID {bookingId}: {ex.StripeError?.Message ?? ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unexpected error creating invoice for Booking ID {bookingId}");
+                return null;
+            }
         }
     }
 }

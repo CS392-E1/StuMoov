@@ -4,6 +4,7 @@ import { StorageLocation } from "@/types/storage";
 import { Message, Session } from "@/types/chat";
 import { Booking } from "@/types/booking";
 import { Image } from "@/types/image";
+import { PaymentStatus } from "@/types/payment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,9 +18,12 @@ import {
   getBookingsByStorageLocationId,
   uploadDropoffImage,
   getImagesByBookingId,
+  confirmBooking,
 } from "@/lib/api";
 
 // Sorry if this is really messy, I should have split this into multiple components
+// This might the worst code mankind has ever seen, please be warned
+
 const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
   // TODO: Implement Edit functionality
   const handleEdit = () => {
@@ -288,62 +292,62 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
   const [bookingImages, setBookingImages] = useState<Record<string, Image[]>>(
     {}
   );
+  const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(
+    null
+  );
+
+  const fetchBookingsAndImages = async () => {
+    setLoading(true);
+    setError(null);
+    setBookingImages({});
+    try {
+      const bookingResponse = await getBookingsByStorageLocationId(listingId);
+      if (
+        bookingResponse.status >= 200 &&
+        bookingResponse.status < 300 &&
+        bookingResponse.data.data
+      ) {
+        setBookings(bookingResponse.data.data);
+
+        const imageFetchPromises = bookingResponse.data.data.map((booking) =>
+          getImagesByBookingId(booking.id)
+            .then((res) => ({
+              bookingId: booking.id,
+              images: res.data.data || [],
+            }))
+            .catch((err) => {
+              console.warn(
+                `Failed to fetch images for booking ${booking.id}:`,
+                err
+              );
+              return { bookingId: booking.id, images: [] };
+            })
+        );
+
+        const imageResults = await Promise.all(imageFetchPromises);
+
+        const imagesMap: Record<string, Image[]> = {};
+        imageResults.forEach((result) => {
+          imagesMap[result.bookingId] = result.images;
+        });
+        setBookingImages(imagesMap);
+      } else {
+        throw new Error(
+          bookingResponse.data.message || "Failed to fetch bookings"
+        );
+      }
+    } catch (err: unknown) {
+      console.error(`Failed to fetch bookings for listing ${listingId}:`, err);
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to load booking status.";
+      setError(errorMsg);
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBookingsAndImages = async () => {
-      setLoading(true);
-      setError(null);
-      setBookingImages({});
-      try {
-        const bookingResponse = await getBookingsByStorageLocationId(listingId);
-        if (
-          bookingResponse.status >= 200 &&
-          bookingResponse.status < 300 &&
-          bookingResponse.data.data
-        ) {
-          setBookings(bookingResponse.data.data);
-
-          const imageFetchPromises = bookingResponse.data.data.map((booking) =>
-            getImagesByBookingId(booking.id)
-              .then((res) => ({
-                bookingId: booking.id,
-                images: res.data.data || [],
-              }))
-              .catch((err) => {
-                console.warn(
-                  `Failed to fetch images for booking ${booking.id}:`,
-                  err
-                );
-                return { bookingId: booking.id, images: [] };
-              })
-          );
-
-          const imageResults = await Promise.all(imageFetchPromises);
-
-          const imagesMap: Record<string, Image[]> = {};
-          imageResults.forEach((result) => {
-            imagesMap[result.bookingId] = result.images;
-          });
-          setBookingImages(imagesMap);
-        } else {
-          throw new Error(
-            bookingResponse.data.message || "Failed to fetch bookings"
-          );
-        }
-      } catch (err: unknown) {
-        console.error(
-          `Failed to fetch bookings for listing ${listingId}:`,
-          err
-        );
-        const errorMsg =
-          err instanceof Error ? err.message : "Failed to load booking status.";
-        setError(errorMsg);
-        setBookings([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBookingsAndImages();
   }, [listingId]);
 
@@ -376,6 +380,30 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
       console.error("Failed to associate drop-off image:", error);
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       toast.error(`Failed to associate image: ${errorMsg}`, { id: toastId });
+    }
+  };
+
+  const handleConfirmDropOff = async (bookingId: string) => {
+    setConfirmingBookingId(bookingId);
+    const toastId = toast.loading("Confirming booking and sending invoice...");
+    try {
+      const response = await confirmBooking(bookingId);
+      if (
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data.data
+      ) {
+        toast.success("Booking confirmed and invoice sent!", { id: toastId });
+        fetchBookingsAndImages();
+      } else {
+        throw new Error(response.data.message || "Failed to confirm booking");
+      }
+    } catch (error) {
+      console.error("Failed to confirm booking:", error);
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to confirm booking: ${errorMsg}`, { id: toastId });
+    } finally {
+      setConfirmingBookingId(null);
     }
   };
 
@@ -429,7 +457,27 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
                   </p>
                 </div>
 
-                <div className="mt-2 border-t p-2">Payment Status</div>
+                <div className="mt-2 border-t pt-2">
+                  <p>
+                    <strong>Payment Status:</strong>{" "}
+                    {booking.payment ? (
+                      <span
+                        className={`font-medium ${
+                          booking.payment.status === PaymentStatus.PAID
+                            ? "text-green-600"
+                            : booking.payment.status === PaymentStatus.OPEN ||
+                              booking.payment.status === PaymentStatus.DRAFT
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {booking.payment.status}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">N/A</span>
+                    )}
+                  </p>
+                </div>
 
                 {booking.status === "PENDING" && (
                   <div className="mt-auto pt-3 border-t">
@@ -451,13 +499,12 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
                           variant="outline"
                           size="sm"
                           className="mt-2"
-                          onClick={() =>
-                            console.log(
-                              `Confirm Drop-off for booking ${booking.id}`
-                            )
-                          }
+                          onClick={() => handleConfirmDropOff(booking.id)}
+                          disabled={confirmingBookingId === booking.id}
                         >
-                          Confirm Drop-Off
+                          {confirmingBookingId === booking.id
+                            ? "Confirming..."
+                            : "Confirm Drop-Off"}
                         </Button>
                       </div>
                     ) : (
