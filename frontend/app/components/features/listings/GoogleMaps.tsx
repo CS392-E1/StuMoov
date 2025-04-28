@@ -8,8 +8,6 @@ import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { StorageLocation } from "@/types/storage";
 import { ChatPopup } from "./ChatPopUp";
 import { AddListing } from "./AddListing";
-import { UserRole } from "@/types/user";
-import { useAuth } from "@/hooks/use-auth";
 
 const containerStyle = {
   width: "100%",
@@ -37,7 +35,6 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
     const [selectedLocation, setSelectedLocation] =
       useState<StorageLocation | null>(null);
     const [chatOpen, setChatOpen] = useState(false);
-    const { user } = useAuth();
 
     useImperativeHandle(ref, () => ({
       panTo: (lat: number, lng: number) => {
@@ -50,9 +47,7 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
 
     return (
       <div className="h-[calc(100vh-150px)] w-full overflow-hidden relative">
-        {user?.role === UserRole.LENDER && (
-          <AddListing onAddLocation={onAddLocation} />
-        )}
+        <AddListing onAddLocation={onAddLocation} />
 
         <LoadScript
           googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY!}

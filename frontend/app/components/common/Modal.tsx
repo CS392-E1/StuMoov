@@ -8,8 +8,6 @@ import { StorageLocation } from "@/types/storage";
 import { LenderDisplay } from "@/components/features/listings/LenderDisplay";
 import { RenterDisplay } from "@/components/features/listings/RenterDisplay";
 
-// type CalendarRangeValue = [Date | null, Date | null] | null; // Keep commented or remove
-
 type ModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,7 +36,7 @@ export default function Modal({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="p-4 overflow-y-auto flex-1 mt-2 border-t space-y-6">
+        <div className="p-4 overflow-y-auto flex-1 mt-2 border-t">
           {isOwner ? (
             <LenderDisplay listing={listing} currentUserId={currentUserId} />
           ) : (
