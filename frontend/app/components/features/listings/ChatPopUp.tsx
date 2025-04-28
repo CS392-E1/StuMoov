@@ -1,31 +1,20 @@
+import React from "react"; // <-- ADD THIS
 import axios from "axios";
 import { useState, useEffect } from "react";
-
-interface Message {
-  id?: string;
-  senderId: string;
-  recipientId: string;
-  content: string;
-  sentAt?: string;
-}
-
-interface ChatPopupProps {
-  receiver: string; // lister's Supabase UUID
-  onClose: () => void;
-}
 
 export const ChatPopup = ({ receiver, onClose }: ChatPopupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
-  // 👇 renter hardcoded for now
+  // renter hardcoded for now
   const senderId = "11111111-2222-3333-4444-555555555555";
 
   const fetchMessages = async () => {
+    if (!senderId || !receiver) return;
     const res = await axios.get(
       `http://localhost:5004/api/messages?user1=${senderId}&user2=${receiver}`
     );
-    setMessages(res.data.data); // backend returns { data: [...] }
+    setMessages(res.data.data);
   };
 
   const sendMessage = async () => {
@@ -41,7 +30,7 @@ export const ChatPopup = ({ receiver, onClose }: ChatPopupProps) => {
 
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [senderId, receiver]); // <-- IMPORTANT
 
   return (
     <div className="absolute top-24 right-4 bg-white p-4 rounded shadow-lg w-80 z-50">

@@ -36,13 +36,14 @@ namespace StuMoov.Models.ChatModel
             // The private modifier restricts its usage to EF Core only
         }
 
-        public ChatMessage(ChatSession chatSession, User sender, string content) {
+        public ChatMessage(ChatSession chatSession, User sender, string content)
+        {
             Id = Guid.NewGuid();
             ChatSessionId = chatSession.Id;
             SenderId = sender.Id;
             Content = content;
             IsRead = false;
-            CreatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
         }
     }
 }

@@ -14,6 +14,7 @@ using StuMoov.Services.AuthService;
 using Stripe;
 using StuMoov.Services.StripeService;
 using System.Security.Claims;
+using StuMoov.Services.ChatService;
 using StuMoov.Service;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -107,6 +108,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton(supabase);
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<StripeService>();
+builder.Services.AddScoped<ChatSessionService>();
+builder.Services.AddScoped<ChatMessageService>();
 
 builder.Services.AddScoped<StorageLocationDao>(sp =>
 {
@@ -136,17 +139,23 @@ builder.Services.AddScoped<StripeConnectAccountDao>(sp =>
     return new StripeConnectAccountDao(context);
 });
 
-builder.Services.AddScoped<MessageDao>(sp =>
+builder.Services.AddScoped<ChatSessionDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
-    return new MessageDao(context);
+    return new ChatSessionDao(context);
+});
+
+builder.Services.AddScoped<ChatMessageDao>(sp =>
+{
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new ChatMessageDao(context);
 });
 
 builder.Services.AddScoped<ImageDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
     return new ImageDao(context);
-});
+})
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>

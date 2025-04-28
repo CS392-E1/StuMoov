@@ -15,6 +15,14 @@ export type StripeConnectAccount = {
   updatedAt: string;
 };
 
+export type StripeCustomer = {
+  id: string;
+  userId: string;
+  stripeCustomerId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type User = {
   id: string;
   firebaseUid: string;
@@ -24,6 +32,7 @@ export type User = {
   isEmailVerified: boolean;
   isAuthenticated: boolean;
   stripeConnectAccount?: StripeConnectAccount | null;
+  stripeCustomer?: StripeCustomer | null;
 };
 
 export enum UserRole {

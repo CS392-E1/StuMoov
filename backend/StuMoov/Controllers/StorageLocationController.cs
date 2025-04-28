@@ -3,6 +3,7 @@ using StuMoov.Models.StorageLocationModel;
 using StuMoov.Services.StorageLocationService;
 using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models;
+using StuMoov.Models.UserModel;
 
 namespace StuMoov.Controllers
 {
@@ -11,12 +12,15 @@ namespace StuMoov.Controllers
     public class StorageLocationController : ControllerBase
     {
         private readonly StorageLocationService _storageLocationService;
+        private readonly StorageLocationDao _storageLocationDao;
+        private readonly UserDao _userDao;
 
-        // Constructor to inject StorageLocationService dependency
-        public StorageLocationController(StorageLocationDao storageLocationDao)
+        // Constructor to inject dependencies
+        public StorageLocationController(StorageLocationDao storageLocationDao, UserDao userDao)
         {
-            // Create StorageLocationService instance using injected DAO
+            this._storageLocationDao = storageLocationDao;
             this._storageLocationService = new StorageLocationService(storageLocationDao);
+            this._userDao = userDao;
         }
 
         // GET: api/StorageLocation
@@ -45,14 +49,40 @@ namespace StuMoov.Controllers
 
         // POST: api/StorageLocation
         [HttpPost]
-        public async Task<ActionResult<Response>> CreateStorageLocation([FromBody] StorageLocation storageLocation)
+        public async Task<ActionResult<Response>> CreateStorageLocation([FromBody] CreateStorageLocationRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new Response(StatusCodes.Status400BadRequest, "Invalid request data.", ModelState));
             }
 
-            Response response = await _storageLocationService.CreateLocationAsync(storageLocation);
+            User? lenderUser = await _userDao.GetUserByIdAsync(request.LenderId);
+            if (lenderUser == null || !(lenderUser is Lender lender))
+            {
+                return NotFound(new Response(StatusCodes.Status404NotFound, "Lender not found or user is not a lender.", null));
+            }
+
+            double length = request.Length ?? 0;
+            double width = request.Width ?? 0;
+            double height = request.Height ?? 0;
+            double volume = length * width * height;
+            double price = request.Price ?? 0;
+
+            StorageLocation newStorageLocation = new StorageLocation(
+                lender: lender,
+                name: request.Name,
+                description: request.Description,
+                address: request.Address,
+                lat: request.Lat,
+                lng: request.Lng,
+                storageLength: length,
+                storageWidth: width,
+                storageHeight: height,
+                storageVolumeTotal: volume,
+                price: price
+            );
+
+            Response response = await _storageLocationService.CreateLocationAsync(newStorageLocation);
             return StatusCode(response.Status, response);
         }
 
@@ -131,4 +161,19 @@ namespace StuMoov.Controllers
             return exists ? Ok() : NotFound();
         }
     }
+}
+
+// DTO for creating a storage location
+public class CreateStorageLocationRequest
+{
+    public Guid LenderId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public double Lat { get; set; }
+    public double Lng { get; set; }
+    public double? Price { get; set; }
+    public double? Length { get; set; }
+    public double? Width { get; set; }
+    public double? Height { get; set; }
 }
