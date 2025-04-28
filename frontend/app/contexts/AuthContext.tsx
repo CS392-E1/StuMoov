@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           if (response.data && response.data.data) {
             const userData = response.data.data[0]; // User data is in an array
-            const user = createUserObject(userData, firebaseUser);
+            const user = createUserObject(userData);
 
             dispatch({
               type: "INITIALIZE",
@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (response.data && response.data.data) {
         const userData = response.data.data;
-        const user = createUserObject(userData, userCredential.user);
+        const user = createUserObject(userData);
 
         dispatch({
           type: "LOGIN",
@@ -216,7 +216,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (response.data && response.data.data) {
         const userData = response.data.data;
-        const user = createUserObject(userData, userCredential.user);
+        const user = createUserObject(userData);
 
         dispatch({
           type: "LOGIN",
