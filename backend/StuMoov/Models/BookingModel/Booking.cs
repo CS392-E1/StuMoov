@@ -13,8 +13,7 @@ public class Booking : BaseModel
     [PrimaryKey("id")]
     public Guid Id { get; private set; }
     [Column("payment_id")]
-    [Required]
-    public Guid PaymentId { get; private set; }
+    public Guid? PaymentId { get; private set; }
     [Reference(typeof(Payment), ReferenceAttribute.JoinType.Inner, true, "payment_id")]
     public Payment? Payment { get; private set; } // Reference to the payment associated with this booking
     [Column("renter_id")]
@@ -39,9 +38,9 @@ public class Booking : BaseModel
     [Required]
     public decimal TotalPrice { get; set; }
     [Column("created_at")]
-    public DateTime CreatedAt { get; private set; }
+    public DateTime CreatedAt { get; set; }
     [Column("updated_at")]
-    public DateTime UpdatedAt { get; private set; }
+    public DateTime UpdatedAt { get; set; }
 
     // Constructor for EF Core - it needs one that only takes scalar values
     private Booking()
@@ -50,10 +49,10 @@ public class Booking : BaseModel
         // The private modifier restricts its usage to EF Core only
     }
 
-    public Booking(Payment payment, Renter renter, StorageLocation storageLocation, DateTime startDate, DateTime endDate, decimal totalPrice)
+    public Booking(Payment? payment, Renter renter, StorageLocation storageLocation, DateTime startDate, DateTime endDate, decimal totalPrice)
     {
         Id = Guid.NewGuid();
-        PaymentId = payment.Id;
+        PaymentId = payment?.Id;
         RenterId = renter.Id;
         StorageLocationId = storageLocation.Id;
         StartDate = startDate;

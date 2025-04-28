@@ -1,7 +1,15 @@
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import {
+  GoogleMap,
+  LoadScript,
+  Marker,
+  InfoWindow,
+} from "@react-google-maps/api";
 import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { StorageLocation } from "@/types/storage";
-import { ChatPopup } from "./ChatPopUp"; // <-- import the chat popup
+import { ChatPopup } from "./ChatPopUp";
+import { AddListing } from "./AddListing";
+import { UserRole } from "@/types/user";
+import { useAuth } from "@/hooks/use-auth";
 
 const containerStyle = {
   width: "100%",
@@ -20,13 +28,16 @@ export interface GoogleMapsRef {
 
 interface GoogleMapsProps {
   locations: StorageLocation[];
+  onAddLocation: (location: StorageLocation) => void;
 }
 
 export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
-  ({ locations }, ref) => {
+  ({ locations, onAddLocation }, ref) => {
     const mapRef = useRef<google.maps.Map | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<StorageLocation | null>(null);
+    const [selectedLocation, setSelectedLocation] =
+      useState<StorageLocation | null>(null);
     const [chatOpen, setChatOpen] = useState(false);
+    const { user } = useAuth();
 
     useImperativeHandle(ref, () => ({
       panTo: (lat: number, lng: number) => {
@@ -38,8 +49,14 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
     }));
 
     return (
-      <div className="h-[calc(100vh-150px)] w-full overflow-hidden">
-        <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY!}>
+      <div className="h-[calc(100vh-150px)] w-full overflow-hidden relative">
+        {user?.role === UserRole.LENDER && (
+          <AddListing onAddLocation={onAddLocation} />
+        )}
+
+        <LoadScript
+          googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY!}
+        >
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={defaultCenter}
@@ -53,6 +70,7 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
                 key={location.id}
                 position={{ lat: location.lat, lng: location.lng }}
                 onClick={() => {
+                  console.log("Messaging lenderId:", location.lenderId);
                   setSelectedLocation(location);
                   setChatOpen(false); // close chat when opening info window
                 }}
@@ -61,14 +79,21 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
 
             {selectedLocation && (
               <InfoWindow
-                position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+                position={{
+                  lat: selectedLocation.lat,
+                  lng: selectedLocation.lng,
+                }}
                 onCloseClick={() => setSelectedLocation(null)}
               >
                 <div className="p-2">
                   <h3 className="font-semibold">{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <p className="text-sm mt-1 text-gray-600">{selectedLocation.address}</p>
-                  <p className="text-sm mt-1 text-gray-600">${selectedLocation.price}/month</p>
+                  <p className="text-sm mt-1 text-gray-600">
+                    {selectedLocation.address}
+                  </p>
+                  <p className="text-sm mt-1 text-gray-600">
+                    ${selectedLocation.price}/month
+                  </p>
                   <button
                     className="mt-2 bg-blue-600 text-white px-2 py-1 rounded"
                     onClick={() => {
@@ -85,7 +110,7 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
 
         {chatOpen && selectedLocation && (
           <ChatPopup
-            receiver={selectedLocation.name}
+            receiver={selectedLocation.lenderId}
             onClose={() => setChatOpen(false)}
           />
         )}

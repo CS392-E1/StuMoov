@@ -12,12 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StorageLocation } from "@/types/storage";
-
+import { useAuth } from "@/hooks/use-auth";
 import { Plus } from "lucide-react";
+import { createStorageLocation, uploadStorageImage } from "@/lib/api";
+import { toast } from "sonner";
+import { useGeocoding } from "@/hooks/use-geocoding";
+import ImageUpload from "./ImageUpload";
 
-interface AddListingProps {
+type AddListingProps = {
   onAddLocation: (location: StorageLocation) => void;
-}
+};
 
 export function AddListing({ onAddLocation }: AddListingProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -25,42 +29,128 @@ export function AddListing({ onAddLocation }: AddListingProps) {
   const [newLocationDesc, setNewLocationDesc] = useState("");
   const [address, setAddress] = useState("");
   const [price, setPrice] = useState("");
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [length, setLength] = useState("");
+  const [width, setWidth] = useState("");
+  const [height, setHeight] = useState("");
+  const { user } = useAuth();
+  const { geocodeAddress, isLoading: isGeocoding } = useGeocoding();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const handleCreateListing = () => {
-    // TODO: Add geocoding for address -> lat/lng
-    const newLocation: StorageLocation = {
-      id: (Math.random() * 10000).toString(), // for now, just a random id
+  const handleCreateListing = async () => {
+    if (!user) {
+      toast.error("You must be logged in to create a listing.");
+      return;
+    }
+
+    let coords: { lat: number; lng: number };
+    try {
+      coords = await geocodeAddress(address);
+      toast.info(
+        `Geocoded address: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
+      );
+    } catch (geoError: unknown) {
+      console.error("Geocoding failed:", geoError);
+      const errorMsg =
+        typeof geoError === "object" &&
+        geoError !== null &&
+        "message" in geoError
+          ? String(geoError.message)
+          : "Failed to get coordinates for the address.";
+      toast.error(`Geocoding Error: ${errorMsg}`);
+      return;
+    }
+
+    const newLocationData = {
+      lenderId: user.id,
       name: newLocationName,
       description: newLocationDesc,
-      lat: 42.36,
-      lng: -71.104,
-      price: Number(price) || 99,
+      lat: coords.lat,
+      lng: coords.lng,
+      price: Number(price) || null,
       address: address,
-      imageUrl: selectedImage
-        ? URL.createObjectURL(selectedImage) // This is just to show the image for now, we will be using an actual platform to store image urls
-        : "https://picsum.photos/200",
+      storageLength: Number(length) || null,
+      storageWidth: Number(width) || null,
+      storageHeight: Number(height) || null,
+      imageUrl: imageUrl,
     };
 
-    onAddLocation(newLocation);
-    setDialogOpen(false);
-    setNewLocationName("");
-    setNewLocationDesc("");
-    setAddress("");
-    setPrice("");
-    setSelectedImage(null);
-  };
+    const loadingToastId = toast.loading("Creating listing...");
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedImage(event.target.files[0]);
+    try {
+      const response = await createStorageLocation(newLocationData);
+
+      if (
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data?.data
+      ) {
+        const createdListing = Array.isArray(response.data.data)
+          ? response.data.data[0]
+          : response.data.data;
+
+        if (createdListing && createdListing.id) {
+          toast.success("Listing created successfully!", {
+            id: loadingToastId,
+          });
+
+          if (imageUrl) {
+            try {
+              await uploadStorageImage(imageUrl, createdListing.id);
+              toast.info("Listing image associated successfully.");
+            } catch (imgError) {
+              console.error(
+                "Failed to associate image with listing:",
+                imgError
+              );
+              toast.error(
+                "Listing created, but failed to associate image. You may need to re-upload."
+              );
+            }
+          }
+
+          onAddLocation(createdListing);
+
+          setDialogOpen(false);
+          setNewLocationName("");
+          setNewLocationDesc("");
+          setAddress("");
+          setPrice("");
+          setLength("");
+          setWidth("");
+          setHeight("");
+          setImageUrl(null);
+        } else {
+          console.error(
+            "Unexpected data format received after creating listing:",
+            response.data.data
+          );
+          toast.error("Received unexpected data from server.", {
+            id: loadingToastId,
+          });
+        }
+      } else {
+        const errorMsg =
+          response.data?.message ||
+          `Failed with status code ${response.status}`;
+        console.error("Failed to create storage location:", errorMsg);
+        toast.error(`Failed to create listing: ${errorMsg}`, {
+          id: loadingToastId,
+        });
+      }
+    } catch (err: unknown) {
+      console.error("Failed to create storage location (catch):", err);
+      const errorMsg =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(`Failed to create listing: ${errorMsg}`, {
+        id: loadingToastId,
+      });
     }
   };
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <button className="absolute top-4 right-4 bg-blue-600 text-white text-2xl rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition p-2">
+        <button className="absolute top-4 right-4 z-10 bg-blue-600 text-white text-2xl rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition p-2">
           <Plus />
         </button>
       </DialogTrigger>
@@ -125,69 +215,53 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             </div>
           </div>
 
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="image-upload">Upload Image</Label>
-            <div className="border-2 border-dashed border-input rounded-md p-4 text-center hover:bg-accent/50 transition">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="length">Length (ft)</Label>
               <Input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                id="image-upload"
+                id="length"
+                type="number"
+                placeholder="e.g., 10"
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                min="0"
               />
-              <Label htmlFor="image-upload" className="cursor-pointer">
-                {selectedImage ? (
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-full h-24 bg-muted rounded flex items-center justify-center overflow-hidden mb-2">
-                      <img
-                        src={URL.createObjectURL(selectedImage)}
-                        alt="Preview"
-                        className="max-h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-sm text-green-600 font-medium text-center">
-                      {selectedImage.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 text-center">
-                      Click to change
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <svg
-                      className="w-12 h-12 text-muted-foreground mx-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      ></path>
-                    </svg>
-                    <p className="mt-2 text-sm text-foreground text-center">
-                      Click to select an image
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground text-center">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
-                  </div>
-                )}
-              </Label>
+            </div>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="width">Width (ft)</Label>
+              <Input
+                id="width"
+                type="number"
+                placeholder="e.g., 8"
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+                min="0"
+              />
+            </div>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="height">Height (ft)</Label>
+              <Input
+                id="height"
+                type="number"
+                placeholder="e.g., 8"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                min="0"
+              />
             </div>
           </div>
+
+          <ImageUpload onUploadSuccess={setImageUrl} />
         </div>
 
         <DialogFooter className="mx-auto">
           <div className="mt-6">
             <button
               onClick={handleCreateListing}
-              className="bg-blue-600 text-white w-full p-3 rounded-md cursor-pointer hover:bg-blue-700 transition font-medium text-lg shadow-sm"
+              disabled={isGeocoding}
+              className="bg-blue-600 text-white w-full p-3 rounded-md cursor-pointer hover:bg-blue-700 transition font-medium text-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Listing
+              {isGeocoding ? "Geocoding..." : "Create Listing"}
             </button>
           </div>
         </DialogFooter>
