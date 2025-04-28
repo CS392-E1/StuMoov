@@ -7,7 +7,7 @@ using StuMoov.Models.ImageModel;
 using StuMoov.Service;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/image")]
 public class ImageController : ControllerBase
 {
     private readonly ImageService _imageService;
