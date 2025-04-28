@@ -98,6 +98,18 @@ export async function getStorageLocationsByUserId(
   return axios.get(`/storage/user/${userId}`);
 }
 
+export async function getStorageLocationsByCoordinates(
+  lat: number,
+  lng: number,
+  radius: number = 10 // Default radius is 10 km
+): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
+  return axios.get(`/storage/nearby`, {
+    params: { lat, lng, radius }, // Send lat, lng, and radius as query parameters
+  });
+}
+
+
+
 export async function createStorageLocation(
   storageData: Omit<
     StorageLocation,

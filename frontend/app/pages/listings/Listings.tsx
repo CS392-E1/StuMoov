@@ -7,7 +7,9 @@ import { ListingsPanel } from "@/components/features/listings/ListingsPanel";
 import { SearchBar } from "@/components/features/listings/SearchBar";
 import { StorageLocation } from "@/types/storage";
 import Modal from "@/components/common/Modal";
+import { useGeocoding } from "@/hooks/use-geocoding";
 import { getStorageLocations } from "@/lib/api";
+import { getStorageLocationsByCoordinates } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Listings() {
@@ -17,6 +19,9 @@ export default function Listings() {
     useState<StorageLocation | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
+
+  // Geocoding hook
+  const { geocodeAddress, isLoading, error } = useGeocoding();
 
   // Handler to add a new location
   const handleAddLocation = (newLocation: StorageLocation) => {
@@ -60,8 +65,25 @@ export default function Listings() {
     }
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     console.log("Searching for:", query);
+  
+    try {
+      // geocode the address to get lat/lng
+      const result = await geocodeAddress(query);
+      console.log("Geocoded coordinates:", result);
+  
+      // fetch nearby storage locations based on the geocoded coordinates
+      const response = await getStorageLocationsByCoordinates(result.lat, result.lng);
+  
+      if (response.status >= 200 && response.status < 300 && response.data?.data) {
+        setLocations(response.data.data); // update locations state with fetched data
+      } else {
+        console.error("Failed to fetch storage locations:", response.data?.message);
+      }
+    } catch (err) {
+      console.error("Geocoding failed:", err);
+    }
   };
 
   return (
