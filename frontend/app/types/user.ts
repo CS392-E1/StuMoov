@@ -18,7 +18,8 @@ export type StripeConnectAccount = {
 export type StripeCustomer = {
   id: string;
   userId: string;
-  stripeCustomerId: string;
+  stripeCustomerId: string | null;
+  defaultPaymentMethodId: string | null;
   createdAt: string;
   updatedAt: string;
 };

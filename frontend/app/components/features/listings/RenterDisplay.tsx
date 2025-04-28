@@ -20,6 +20,7 @@ import {
   getSessionByParticipants,
   createBooking,
   getImagesByBookingId,
+  createStripeCustomer,
 } from "@/lib/api";
 
 type RenterDisplayProps = {
@@ -304,6 +305,29 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
         setDateRange(null);
         toast.success("Booking request sent successfully!");
         handleFetchBookings();
+
+        // Call createStripeCustomer after successful booking
+        try {
+          console.log("Attempting to create/verify Stripe customer...");
+          const customerResponse = await createStripeCustomer();
+          if (
+            customerResponse.status >= 200 &&
+            customerResponse.status < 300 &&
+            customerResponse.data.data
+          ) {
+            console.log(
+              "Stripe customer created/verified:",
+              customerResponse.data.data
+            );
+          } else {
+            console.warn(
+              "Failed to create/verify Stripe customer:",
+              customerResponse.data.message
+            );
+          }
+        } catch (customerError) {
+          console.error("Error calling createStripeCustomer:", customerError);
+        }
       } else {
         throw new Error(
           response.data.message || `Failed with status ${response.status}`

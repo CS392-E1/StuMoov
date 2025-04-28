@@ -342,7 +342,7 @@ namespace StuMoov.Services.StripeService
                     Metadata = new Dictionary<string, string>
                     {
                         { "bookingId", booking.Id.ToString() },
-                        { "paymentId", booking.PaymentId.ToString() }
+                        { "paymentId", booking.PaymentId.ToString()! }
                     },
                     Description = $"Invoice for Booking {booking.Id}"
                 };

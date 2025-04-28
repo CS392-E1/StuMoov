@@ -1,5 +1,10 @@
 import axios, { AxiosResponse } from "axios";
-import { User, UserRole, StripeConnectAccount } from "@/types/user";
+import {
+  User,
+  UserRole,
+  StripeConnectAccount,
+  StripeCustomer,
+} from "@/types/user";
 import {
   ApiResponse,
   OnboardingLinkResponse,
@@ -256,4 +261,10 @@ export async function getImagesByStorageLocationId(
   return axios.get(`/image/storage/${storageLocationId}`, {
     withCredentials: true,
   });
+}
+
+export async function createStripeCustomer(): Promise<
+  AxiosResponse<ApiResponse<StripeCustomer>>
+> {
+  return axios.post("/stripe/customers", {}, { withCredentials: true });
 }
