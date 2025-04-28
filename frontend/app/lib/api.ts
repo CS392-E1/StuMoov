@@ -8,6 +8,7 @@ import {
 import { StorageLocation } from "@/types/storage";
 import { Session, Message } from "@/types/chat";
 import { Booking } from "@/types/booking";
+import { Image, ImagePayload } from "@/types/image";
 
 axios.defaults.baseURL = "http://localhost:5004/api";
 axios.defaults.withCredentials = true; // Important for cookies
@@ -114,7 +115,7 @@ export async function getStorageLocationsByDimensions(
   height?: number
 ): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
   try {
-    const params: any = {};
+    const params: { length?: number; width?: number; height?: number } = {}; // Explicitly type params
     if (length) params.length = length;
     if (width) params.width = width;
     if (height) params.height = height;
@@ -149,10 +150,8 @@ export async function getStorageLocationsByCapacity(
 }
 
 export async function createStorageLocation(
-  storageData: Omit<
-    StorageLocation,
-    "id" | "createdAt" | "updatedAt" | "imageUrl"
-  >
+  // Update type to include imageUrl and exclude only generated fields
+  storageData: Omit<StorageLocation, "id" | "createdAt" | "updatedAt">
 ): Promise<AxiosResponse<ApiResponse<StorageLocation>>> {
   return axios.post("/storage", storageData);
 }
@@ -227,4 +226,22 @@ export async function createBooking(
   booking: Booking
 ): Promise<AxiosResponse<ApiResponse<Booking>>> {
   return axios.post("/bookings", booking, { withCredentials: true });
+}
+
+// New function to upload storage image metadata
+export async function uploadStorageImage(
+  imageUrl: string,
+  storageLocationId: string
+): Promise<AxiosResponse<ApiResponse<Image>>> {
+  const payload: ImagePayload = { url: imageUrl, storageLocationId };
+  return axios.post("/image/storage", payload, { withCredentials: true });
+}
+
+// New function to upload dropoff image metadata
+export async function uploadDropoffImage(
+  imageUrl: string,
+  bookingId: string
+): Promise<AxiosResponse<ApiResponse<Image>>> {
+  const payload: ImagePayload = { url: imageUrl, bookingId };
+  return axios.post("/image/dropoff", payload, { withCredentials: true });
 }

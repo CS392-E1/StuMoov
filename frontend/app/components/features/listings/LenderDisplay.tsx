@@ -6,12 +6,15 @@ import { Booking } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import ImageUpload from "./ImageUpload";
 
 import {
   getMySessions,
   getMessagesBySessionId,
   sendMessage,
   getBookingsByStorageLocationId,
+  uploadDropoffImage,
 } from "@/lib/api";
 
 // Sorry if this is really messy, I should have split this into multiple components
@@ -280,6 +283,9 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -312,6 +318,28 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
 
     fetchBookings();
   }, [listingId]);
+
+  const handleImageUploadSuccess = async (
+    imageUrl: string,
+    bookingId: string
+  ) => {
+    const toastId = toast.loading("Associating image with booking...");
+    try {
+      const response = await uploadDropoffImage(imageUrl, bookingId);
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Drop-off image uploaded and associated successfully!", {
+          id: toastId,
+        });
+        setUploadedImageUrls((prev) => ({ ...prev, [bookingId]: imageUrl }));
+      } else {
+        throw new Error(response.data.message || "Failed to associate image");
+      }
+    } catch (error) {
+      console.error("Failed to associate drop-off image:", error);
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to associate image: ${errorMsg}`, { id: toastId });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -360,7 +388,33 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
                     ? (booking.totalPrice / 100).toFixed(2)
                     : "N/A"}
                 </p>
-                {/* TODO: Add Payment Status */}
+                {booking.status === "CONFIRMED" && (
+                  <div className="mt-3 pt-3 border-t">
+                    {uploadedImageUrls[booking.id] ? (
+                      <div>
+                        <h5 className="text-sm font-semibold mb-1">
+                          Uploaded Drop-off Image:
+                        </h5>
+                        <img
+                          src={uploadedImageUrls[booking.id]}
+                          alt={`Drop-off for booking ${booking.id}`}
+                          className="mt-1 max-w-xs max-h-40 rounded border object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <h5 className="text-sm font-semibold mb-1">
+                          Upload Drop-off Image:
+                        </h5>
+                        <ImageUpload
+                          onUploadSuccess={(imageUrl) =>
+                            handleImageUploadSuccess(imageUrl, booking.id)
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
