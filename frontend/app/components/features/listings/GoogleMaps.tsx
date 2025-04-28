@@ -6,7 +6,6 @@ import {
 } from "@react-google-maps/api";
 import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { StorageLocation } from "@/types/storage";
-import { ChatPopup } from "./ChatPopUp";
 import { AddListing } from "./AddListing";
 import { UserRole } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,7 +35,6 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
     const mapRef = useRef<google.maps.Map | null>(null);
     const [selectedLocation, setSelectedLocation] =
       useState<StorageLocation | null>(null);
-    const [chatOpen, setChatOpen] = useState(false);
     const { user } = useAuth();
 
     useImperativeHandle(ref, () => ({
@@ -72,7 +70,6 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
                 onClick={() => {
                   console.log("Messaging lenderId:", location.lenderId);
                   setSelectedLocation(location);
-                  setChatOpen(false); // close chat when opening info window
                 }}
               />
             ))}
@@ -94,26 +91,11 @@ export const GoogleMaps = forwardRef<GoogleMapsRef, GoogleMapsProps>(
                   <p className="text-sm mt-1 text-gray-600">
                     ${selectedLocation.price}/month
                   </p>
-                  <button
-                    className="mt-2 bg-blue-600 text-white px-2 py-1 rounded"
-                    onClick={() => {
-                      setChatOpen(true);
-                    }}
-                  >
-                    I'm Interested
-                  </button>
                 </div>
               </InfoWindow>
             )}
           </GoogleMap>
         </LoadScript>
-
-        {chatOpen && selectedLocation && (
-          <ChatPopup
-            receiver={selectedLocation.lenderId}
-            onClose={() => setChatOpen(false)}
-          />
-        )}
       </div>
     );
   }
