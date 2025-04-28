@@ -104,7 +104,7 @@ export async function getStorageLocationsByCoordinates(
   radius: number = 10.0 // Default radius is 10 km
 ): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
   return axios.get(`/storage/nearby`, {
-    params: { lat, lng, radius }, // Send lat, lng, and radius as query parameters
+    params: { lat, lng, radiusKm: radius }, // Send lat, lng, and radius as query parameters
   });
 }
 
