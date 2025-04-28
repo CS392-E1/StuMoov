@@ -228,7 +228,6 @@ export async function createBooking(
   return axios.post("/bookings", booking, { withCredentials: true });
 }
 
-// New function to upload storage image metadata
 export async function uploadStorageImage(
   imageUrl: string,
   storageLocationId: string
@@ -237,11 +236,24 @@ export async function uploadStorageImage(
   return axios.post("/image/storage", payload, { withCredentials: true });
 }
 
-// New function to upload dropoff image metadata
 export async function uploadDropoffImage(
   imageUrl: string,
   bookingId: string
 ): Promise<AxiosResponse<ApiResponse<Image>>> {
   const payload: ImagePayload = { url: imageUrl, bookingId };
   return axios.post("/image/dropoff", payload, { withCredentials: true });
+}
+
+export async function getImagesByBookingId(
+  bookingId: string
+): Promise<AxiosResponse<ApiResponse<Image[]>>> {
+  return axios.get(`/image/booking/${bookingId}`, { withCredentials: true });
+}
+
+export async function getImagesByStorageLocationId(
+  storageLocationId: string
+): Promise<AxiosResponse<ApiResponse<Image[]>>> {
+  return axios.get(`/image/storage/${storageLocationId}`, {
+    withCredentials: true,
+  });
 }

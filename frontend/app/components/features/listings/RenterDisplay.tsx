@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { StorageLocation } from "@/types/storage";
 import { Message } from "@/types/chat";
 import { Booking, BookingStatus } from "@/types/booking";
+import { Image } from "@/types/image";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { calculateBookingPrice } from "@/hooks/use-booking-price";
@@ -18,6 +19,7 @@ import {
   getMessagesBySessionId,
   getSessionByParticipants,
   createBooking,
+  getImagesByBookingId,
 } from "@/lib/api";
 
 type RenterDisplayProps = {
@@ -44,6 +46,9 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateRange, setDateRange] = useState<CalendarRangeValue>(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [bookingImages, setBookingImages] = useState<Record<string, Image[]>>(
+    {}
+  );
 
   type CalendarRangeValue = [Date | null, Date | null] | null;
 
@@ -125,10 +130,41 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
 
   const handleFetchBookings = async () => {
     setLoadingBookings(true);
+    setBookingImages({});
     try {
       const res = await getBookingsByStorageLocationId(listing.id);
       if (res.status >= 200 && res.status < 300 && res.data.data) {
-        setBookings(res.data.data);
+        const fetchedBookings = res.data.data;
+        setBookings(fetchedBookings);
+
+        const relevantBookings = fetchedBookings.filter(
+          (b) => b.renterId === currentUserId
+        );
+
+        if (relevantBookings.length > 0) {
+          const imageFetchPromises = relevantBookings.map((booking) =>
+            getImagesByBookingId(booking.id)
+              .then((imgRes) => ({
+                bookingId: booking.id,
+                images: imgRes.data.data || [],
+              }))
+              .catch((err) => {
+                console.warn(
+                  `RenterDisplay: Failed to fetch images for booking ${booking.id}:`,
+                  err
+                );
+                return { bookingId: booking.id, images: [] };
+              })
+          );
+
+          const imageResults = await Promise.all(imageFetchPromises);
+
+          const imagesMap: Record<string, Image[]> = {};
+          imageResults.forEach((result) => {
+            imagesMap[result.bookingId] = result.images;
+          });
+          setBookingImages(imagesMap);
+        }
       } else {
         console.error("Failed to fetch bookings:", res.data.message);
         setBookings([]);
@@ -449,6 +485,22 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
                       ? (booking.totalPrice / 100).toFixed(2)
                       : "N/A"}
                   </p>
+                  {bookingImages[booking.id] &&
+                    bookingImages[booking.id].length > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <h5 className="text-sm font-semibold mb-1">
+                          Drop-off Image(s):
+                        </h5>
+                        {bookingImages[booking.id].map((image) => (
+                          <img
+                            key={image.id}
+                            src={image.url}
+                            alt={`Drop-off for booking ${booking.id}`}
+                            className="mt-1 max-w-xs max-h-40 rounded border object-cover mb-2"
+                          />
+                        ))}
+                      </div>
+                    )}
                 </li>
               ))}
             </ul>
