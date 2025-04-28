@@ -6,6 +6,7 @@ using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.PaymentModel;
 using StuMoov.Models.UserModel.Enums;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using StuMoov.Models.ImageModel;
 
 namespace StuMoov.Db
 {
@@ -25,6 +26,7 @@ namespace StuMoov.Db
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<StorageLocation> StorageLocations { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Image> Images { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +59,7 @@ namespace StuMoov.Db
             modelBuilder.Entity<Booking>().HasKey(b => b.Id);
             modelBuilder.Entity<StorageLocation>().HasKey(sl => sl.Id);
             modelBuilder.Entity<Payment>().HasKey(p => p.Id);
+            modelBuilder.Entity<Image>().HasKey(I => I.Id);
 
             // Configure relationships
             // StripeCustomer -> User
