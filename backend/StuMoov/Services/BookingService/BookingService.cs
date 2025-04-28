@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.BookingModel;
+using StuMoov.Models.StorageLocationModel;
+using StuMoov.Models.UserModel;
+using StuMoov.Controllers;
 
 namespace StuMoov.Services.BookingService
 {
@@ -20,29 +23,56 @@ namespace StuMoov.Services.BookingService
             _bookingDao = bookingDao;
         }
 
-        // Create a new booking - taking a Booking object directly
-        public async Task<Response> CreateBookingAsync(Booking booking)
+        // Updated CreateBookingAsync to accept DTO and fetched entities
+        public async Task<Response> CreateBookingAsync(CreateBookingRequest request, Renter renter, StorageLocation storageLocation)
         {
             try
             {
-                if (booking == null)
-                    return new Response(StatusCodes.Status400BadRequest, "Booking cannot be null", null);
+                // Validate inputs (DTO/entities already validated in Controller, but can add more service-level checks)
+                if (request == null)
+                    return new Response(StatusCodes.Status400BadRequest, "Booking request cannot be null", null);
+                if (renter == null)
+                    return new Response(StatusCodes.Status400BadRequest, "Renter cannot be null", null);
+                if (storageLocation == null)
+                    return new Response(StatusCodes.Status400BadRequest, "Storage location cannot be null", null);
 
-                // Validate the booking
-                ValidateBooking(booking);
+                if (request.StartDate >= request.EndDate)
+                    return new Response(StatusCodes.Status400BadRequest, "Start date must be before end date", null);
+
+                if (request.TotalPrice <= 0)
+                    return new Response(StatusCodes.Status400BadRequest, "Total price must be greater than zero", null);
 
                 // Check if the storage location is available for the requested dates
-                if (!await _bookingDao.IsStorageLocationAvailableAsync(booking.StorageLocationId, booking.StartDate, booking.EndDate))
+                if (!await _bookingDao.IsStorageLocationAvailableAsync(storageLocation.Id, request.StartDate, request.EndDate))
                     return new Response(StatusCodes.Status409Conflict, "The storage location is not available for the requested dates", null);
 
-                var id = await _bookingDao.CreateAsync(booking);
-                booking = await _bookingDao.GetByIdAsync(id);
+                // Construct the Booking object using the available constructor
+                // Assuming the constructor sets the default status to PENDING or DAO handles it.
+                // The Payment is null initially.
+                Booking newBooking = new Booking(
+                    payment: null,
+                    renter: renter,
+                    storageLocation: storageLocation,
+                    startDate: request.StartDate,
+                    endDate: request.EndDate,
+                    totalPrice: request.TotalPrice // Price in cents
+                );
 
-                return new Response(StatusCodes.Status201Created, "Booking created successfully", booking);
+                var now = DateTime.UtcNow;
+                newBooking.CreatedAt = now;
+                newBooking.UpdatedAt = now;
+
+                // Use the DAO to create the booking
+                // Ensure the DAO's CreateAsync correctly sets the default PENDING status
+                var id = await _bookingDao.CreateAsync(newBooking);
+                var createdBooking = await _bookingDao.GetByIdAsync(id);
+
+                return new Response(StatusCodes.Status201Created, "Booking created successfully", createdBooking);
             }
             catch (Exception ex)
             {
-                return new Response(StatusCodes.Status500InternalServerError, ex.Message, null);
+                Console.WriteLine($"Error creating booking: {ex}");
+                return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the booking.", null);
             }
         }
 
