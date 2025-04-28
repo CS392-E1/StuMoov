@@ -1,8 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/hooks/use-auth";
 
 const Header: React.FC = () => {
+  const { user } = useAuth();
+
   return (
     <header className="bg-white shadow-md py-4 px-6">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -11,11 +13,9 @@ const Header: React.FC = () => {
             StuMoov
           </Link>
         </div>
-        {auth.currentUser ? (
+        {user ? (
           <div className="flex gap-4 items-center">
-            <span>
-              {auth.currentUser?.displayName || auth.currentUser?.email}
-            </span>
+            <span>{user?.displayName || user?.email}</span>
           </div>
         ) : (
           <div className="flex gap-4">

@@ -1,21 +1,17 @@
-import { User as FirebaseUser } from "firebase/auth";
 import { User } from "@/types/user";
 
-// Creates a User object from backend data and/or Firebase user
+// Creates a User object from backend data
 export const createUserObject = (
-  user: User, // Backend user data
-  firebaseUser?: FirebaseUser | null // Optional Firebase user for fallbacks
+  user: User // Backend user data
 ): User => {
   return {
-    id: user.id || firebaseUser?.uid || "",
-    email: user.email || firebaseUser?.email || "",
-    displayName:
-      user.displayName || firebaseUser?.displayName || user.email || "",
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
     role: user.role,
     isAuthenticated: true,
-    firebaseUid: user.firebaseUid || firebaseUser?.uid || "",
-    isEmailVerified:
-      user.isEmailVerified || firebaseUser?.emailVerified || false,
+    firebaseUid: user.firebaseUid,
+    isEmailVerified: user.isEmailVerified,
     stripeConnectAccount: user.stripeConnectAccount,
   };
 };
