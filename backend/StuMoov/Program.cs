@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using StuMoov.Middleware;
 using StuMoov.Services.AuthService;
+using StuMoov.Services.BookingService;
 using Stripe;
 using StuMoov.Services.StripeService;
 using System.Security.Claims;
@@ -149,6 +150,8 @@ builder.Services.AddScoped<ChatMessageDao>(sp =>
     var context = sp.GetRequiredService<AppDbContext>();
     return new ChatMessageDao(context);
 });
+
+builder.Services.AddScoped<BookingService>();
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>

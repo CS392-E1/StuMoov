@@ -53,7 +53,6 @@ const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
           </p>
         </div>
       </div>
-      {/* TODO: Add available dates? Maybe a calendar component? */}
       <div className="pt-4">
         <Button onClick={handleEdit} variant="outline">
           Edit Listing
@@ -357,7 +356,9 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
                 </p>
                 <p>
                   <strong>Total Price:</strong> $
-                  {booking.totalPrice?.toFixed(2) ?? "N/A"}
+                  {typeof booking.totalPrice === "number"
+                    ? (booking.totalPrice / 100).toFixed(2)
+                    : "N/A"}
                 </p>
                 {/* TODO: Add Payment Status */}
               </li>

@@ -108,14 +108,12 @@ export async function getStorageLocationsByCoordinates(
   });
 }
 
-
 export async function getStorageLocationsByDimensions(
   length?: number,
   width?: number,
   height?: number
 ): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
   try {
-    // Construct query parameters based on provided filters
     const params: any = {};
     if (length) params.length = length;
     if (width) params.width = width;
@@ -223,4 +221,10 @@ export async function getSessionByParticipants(
       return (status >= 200 && status < 300) || status === 404;
     },
   });
+}
+
+export async function createBooking(
+  booking: Booking
+): Promise<AxiosResponse<ApiResponse<Booking>>> {
+  return axios.post("/bookings", booking, { withCredentials: true });
 }
