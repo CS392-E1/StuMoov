@@ -101,7 +101,7 @@ export async function getStorageLocationsByUserId(
 export async function getStorageLocationsByCoordinates(
   lat: number,
   lng: number,
-  radius: number = 10 // Default radius is 10 km
+  radius: number = 10.0 // Default radius is 10 km
 ): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
   return axios.get(`/storage/nearby`, {
     params: { lat, lng, radius }, // Send lat, lng, and radius as query parameters
@@ -109,6 +109,46 @@ export async function getStorageLocationsByCoordinates(
 }
 
 
+export async function getStorageLocationsByDimensions(
+  length?: number,
+  width?: number,
+  height?: number
+): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
+  try {
+    // Construct query parameters based on provided filters
+    const params: any = {};
+    if (length) params.length = length;
+    if (width) params.width = width;
+    if (height) params.height = height;
+
+    return axios.get("/storage/dimensions", { params });
+  } catch (error) {
+    console.error("Error fetching storage locations by dimensions:", error);
+    throw error;
+  }
+}
+
+export async function getStorageLocationsByPrice(
+  maxPrice: number
+): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
+  try {
+    return axios.get("/storage/price", { params: { maxPrice } });
+  } catch (error) {
+    console.error("Error fetching storage locations by price:", error);
+    throw error;
+  }
+}
+
+export async function getStorageLocationsByCapacity(
+  volume: number
+): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
+  try {
+    return axios.get("/storage/capacity", { params: { volume } });
+  } catch (error) {
+    console.error("Error fetching storage locations by capacity:", error);
+    throw error;
+  }
+}
 
 export async function createStorageLocation(
   storageData: Omit<
