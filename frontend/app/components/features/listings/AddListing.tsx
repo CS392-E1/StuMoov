@@ -14,9 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { StorageLocation } from "@/types/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { Plus } from "lucide-react";
-import { createStorageLocation } from "@/lib/api";
+import { createStorageLocation, uploadStorageImage } from "@/lib/api";
 import { toast } from "sonner";
 import { useGeocoding } from "@/hooks/use-geocoding";
+import ImageUpload from "./ImageUpload";
 
 type AddListingProps = {
   onAddLocation: (location: StorageLocation) => void;
@@ -33,6 +34,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
   const [height, setHeight] = useState("");
   const { user } = useAuth();
   const { geocodeAddress, isLoading: isGeocoding } = useGeocoding();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleCreateListing = async () => {
     if (!user) {
@@ -69,6 +71,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
       storageLength: Number(length) || null,
       storageWidth: Number(width) || null,
       storageHeight: Number(height) || null,
+      imageUrl: imageUrl,
     };
 
     const loadingToastId = toast.loading("Creating listing...");
@@ -81,13 +84,41 @@ export function AddListing({ onAddLocation }: AddListingProps) {
         response.status < 300 &&
         response.data?.data
       ) {
-        toast.success("Listing created successfully!", { id: loadingToastId });
+        const createdListing = Array.isArray(response.data.data)
+          ? response.data.data[0]
+          : response.data.data;
 
-        if (
-          Array.isArray(response.data.data) &&
-          response.data.data.length > 0
-        ) {
-          onAddLocation(response.data.data[0]);
+        if (createdListing && createdListing.id) {
+          toast.success("Listing created successfully!", {
+            id: loadingToastId,
+          });
+
+          if (imageUrl) {
+            try {
+              await uploadStorageImage(imageUrl, createdListing.id);
+              toast.info("Listing image associated successfully.");
+            } catch (imgError) {
+              console.error(
+                "Failed to associate image with listing:",
+                imgError
+              );
+              toast.error(
+                "Listing created, but failed to associate image. You may need to re-upload."
+              );
+            }
+          }
+
+          onAddLocation(createdListing);
+
+          setDialogOpen(false);
+          setNewLocationName("");
+          setNewLocationDesc("");
+          setAddress("");
+          setPrice("");
+          setLength("");
+          setWidth("");
+          setHeight("");
+          setImageUrl(null);
         } else {
           console.error(
             "Unexpected data format received after creating listing:",
@@ -97,15 +128,6 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             id: loadingToastId,
           });
         }
-
-        setDialogOpen(false);
-        setNewLocationName("");
-        setNewLocationDesc("");
-        setAddress("");
-        setPrice("");
-        setLength("");
-        setWidth("");
-        setHeight("");
       } else {
         const errorMsg =
           response.data?.message ||
@@ -228,6 +250,8 @@ export function AddListing({ onAddLocation }: AddListingProps) {
               />
             </div>
           </div>
+
+          <ImageUpload onUploadSuccess={setImageUrl} />
         </div>
 
         <DialogFooter className="mx-auto">

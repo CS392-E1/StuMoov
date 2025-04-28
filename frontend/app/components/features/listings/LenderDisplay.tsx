@@ -3,15 +3,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StorageLocation } from "@/types/storage";
 import { Message, Session } from "@/types/chat";
 import { Booking } from "@/types/booking";
+import { Image } from "@/types/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import ImageUpload from "./ImageUpload";
 
 import {
   getMySessions,
   getMessagesBySessionId,
   sendMessage,
   getBookingsByStorageLocationId,
+  uploadDropoffImage,
+  getImagesByBookingId,
 } from "@/lib/api";
 
 // Sorry if this is really messy, I should have split this into multiple components
@@ -53,7 +58,6 @@ const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
           </p>
         </div>
       </div>
-      {/* TODO: Add available dates? Maybe a calendar component? */}
       <div className="pt-4">
         <Button onClick={handleEdit} variant="outline">
           Edit Listing
@@ -281,21 +285,50 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bookingImages, setBookingImages] = useState<Record<string, Image[]>>(
+    {}
+  );
 
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchBookingsAndImages = async () => {
       setLoading(true);
       setError(null);
+      setBookingImages({});
       try {
-        const response = await getBookingsByStorageLocationId(listingId);
+        const bookingResponse = await getBookingsByStorageLocationId(listingId);
         if (
-          response.status >= 200 &&
-          response.status < 300 &&
-          response.data.data
+          bookingResponse.status >= 200 &&
+          bookingResponse.status < 300 &&
+          bookingResponse.data.data
         ) {
-          setBookings(response.data.data);
+          setBookings(bookingResponse.data.data);
+
+          const imageFetchPromises = bookingResponse.data.data.map((booking) =>
+            getImagesByBookingId(booking.id)
+              .then((res) => ({
+                bookingId: booking.id,
+                images: res.data.data || [],
+              }))
+              .catch((err) => {
+                console.warn(
+                  `Failed to fetch images for booking ${booking.id}:`,
+                  err
+                );
+                return { bookingId: booking.id, images: [] };
+              })
+          );
+
+          const imageResults = await Promise.all(imageFetchPromises);
+
+          const imagesMap: Record<string, Image[]> = {};
+          imageResults.forEach((result) => {
+            imagesMap[result.bookingId] = result.images;
+          });
+          setBookingImages(imagesMap);
         } else {
-          throw new Error(response.data.message || "Failed to fetch bookings");
+          throw new Error(
+            bookingResponse.data.message || "Failed to fetch bookings"
+          );
         }
       } catch (err: unknown) {
         console.error(
@@ -311,8 +344,40 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
       }
     };
 
-    fetchBookings();
+    fetchBookingsAndImages();
   }, [listingId]);
+
+  const handleImageUploadSuccess = async (
+    imageUrl: string,
+    bookingId: string
+  ) => {
+    const toastId = toast.loading("Associating image with booking...");
+    try {
+      const response = await uploadDropoffImage(imageUrl, bookingId);
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Drop-off image uploaded and associated successfully!", {
+          id: toastId,
+        });
+        const newImage = response.data.data as Image;
+        if (newImage) {
+          setBookingImages((prev) => ({
+            ...prev,
+            [bookingId]: [...(prev[bookingId] || []), newImage],
+          }));
+        } else {
+          console.warn(
+            "Backend did not return the new image object after upload."
+          );
+        }
+      } else {
+        throw new Error(response.data.message || "Failed to associate image");
+      }
+    } catch (error) {
+      console.error("Failed to associate drop-off image:", error);
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to associate image: ${errorMsg}`, { id: toastId });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -328,38 +393,87 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
             {bookings.map((booking) => (
               <li
                 key={booking.id}
-                className="border-b pb-3 last:border-b-0 last:pb-0"
+                className="border-b pb-3 last:border-b-0 last:pb-0 flex flex-col min-h-[250px]"
               >
-                <p>
-                  <strong>Renter:</strong>{" "}
-                  {booking.renter?.displayName ||
-                    booking.renter?.email ||
-                    booking.renterId}
-                </p>
-                <p>
-                  <strong>Dates:</strong>{" "}
-                  {new Date(booking.startDate).toLocaleDateString()} -{" "}
-                  {new Date(booking.endDate).toLocaleDateString()}
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={`font-medium ${
-                      booking.status === "CONFIRMED"
-                        ? "text-green-600"
-                        : booking.status === "PENDING"
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {booking.status}
-                  </span>
-                </p>
-                <p>
-                  <strong>Total Price:</strong> $
-                  {booking.totalPrice?.toFixed(2) ?? "N/A"}
-                </p>
-                {/* TODO: Add Payment Status */}
+                <div>
+                  <p>
+                    <strong>Renter:</strong>{" "}
+                    {booking.renter?.displayName ||
+                      booking.renter?.email ||
+                      booking.renterId}
+                  </p>
+                  <p>
+                    <strong>Dates:</strong>{" "}
+                    {new Date(booking.startDate).toLocaleDateString()} -{" "}
+                    {new Date(booking.endDate).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={`font-medium ${
+                        booking.status === "CONFIRMED"
+                          ? "text-green-600"
+                          : booking.status === "PENDING"
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {booking.status}
+                    </span>
+                  </p>
+                  <p>
+                    <strong>Total Price:</strong> $
+                    {typeof booking.totalPrice === "number"
+                      ? (booking.totalPrice / 100).toFixed(2)
+                      : "N/A"}
+                  </p>
+                </div>
+
+                <div className="mt-2 border-t p-2">Payment Status</div>
+
+                {booking.status === "PENDING" && (
+                  <div className="mt-auto pt-3 border-t">
+                    {bookingImages[booking.id] &&
+                    bookingImages[booking.id].length > 0 ? (
+                      <div>
+                        <h5 className="text-sm font-semibold mb-1">
+                          Drop-off Image(s):
+                        </h5>
+                        {bookingImages[booking.id].map((image) => (
+                          <img
+                            key={image.id}
+                            src={image.url}
+                            alt={`Drop-off for booking ${booking.id}`}
+                            className="mt-1 max-w-xs max-h-40 rounded border object-cover mb-2"
+                          />
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() =>
+                            console.log(
+                              `Confirm Drop-off for booking ${booking.id}`
+                            )
+                          }
+                        >
+                          Confirm Drop-Off
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <h5 className="text-sm font-semibold mb-1">
+                          Upload Drop-off Image:
+                        </h5>
+                        <ImageUpload
+                          onUploadSuccess={(imageUrl) =>
+                            handleImageUploadSuccess(imageUrl, booking.id)
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
