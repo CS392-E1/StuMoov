@@ -155,7 +155,7 @@ builder.Services.AddScoped<ImageDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
     return new ImageDao(context);
-})
+});
 
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
