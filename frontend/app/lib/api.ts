@@ -268,3 +268,23 @@ export async function createStripeCustomer(): Promise<
 > {
   return axios.post("/stripe/customers", {}, { withCredentials: true });
 }
+
+export async function confirmBooking(
+  bookingId: string
+): Promise<AxiosResponse<ApiResponse<Booking>>> {
+  return axios.put(
+    `/bookings/${bookingId}/confirm`,
+    {},
+    { withCredentials: true }
+  );
+}
+
+// Add function to get invoice URL
+export async function getInvoiceUrl(
+  paymentId: string
+): Promise<AxiosResponse<ApiResponse<string>>> {
+  // Returns the URL string
+  return axios.get(`/payments/${paymentId}/invoice-url`, {
+    withCredentials: true,
+  });
+}

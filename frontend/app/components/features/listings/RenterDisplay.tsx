@@ -7,6 +7,7 @@ import { StorageLocation } from "@/types/storage";
 import { Message } from "@/types/chat";
 import { Booking, BookingStatus } from "@/types/booking";
 import { Image } from "@/types/image";
+import { PaymentStatus } from "@/types/payment";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { calculateBookingPrice } from "@/hooks/use-booking-price";
@@ -21,6 +22,7 @@ import {
   createBooking,
   getImagesByBookingId,
   createStripeCustomer,
+  getInvoiceUrl,
 } from "@/lib/api";
 
 type RenterDisplayProps = {
@@ -50,6 +52,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
   const [bookingImages, setBookingImages] = useState<Record<string, Image[]>>(
     {}
   );
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
 
   type CalendarRangeValue = [Date | null, Date | null] | null;
 
@@ -343,6 +346,25 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     }
   };
 
+  const handlePayInvoice = async (paymentId: string) => {
+    setPayingInvoiceId(paymentId);
+    try {
+      const response = await getInvoiceUrl(paymentId);
+      if (response.status === 200 && response.data.data) {
+        window.open(response.data.data, "_blank");
+      } else {
+        throw new Error(response.data.message || "Failed to get invoice URL");
+      }
+    } catch (error) {
+      console.error("Failed to fetch invoice URL:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Could not load payment page."
+      );
+    } finally {
+      setPayingInvoiceId(null);
+    }
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
@@ -493,11 +515,11 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
                   </p>
                   <p>
                     <strong>Status:</strong>{" "}
-                    {booking.status === "CONFIRMED" ? (
+                    {booking.status === BookingStatus.CONFIRMED ? (
                       <span className="text-green-500">Confirmed</span>
-                    ) : booking.status === "PENDING" ? (
+                    ) : booking.status === BookingStatus.PENDING ? (
                       <span className="text-yellow-500">Pending</span>
-                    ) : booking.status === "CANCELLED" ? (
+                    ) : booking.status === BookingStatus.CANCELLED ? (
                       <span className="text-red-500">Cancelled</span>
                     ) : (
                       <span className="text-gray-500">Unknown</span>
@@ -509,6 +531,41 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
                       ? (booking.totalPrice / 100).toFixed(2)
                       : "N/A"}
                   </p>
+                  <p>
+                    <strong>Payment Status:</strong>{" "}
+                    {booking.payment ? (
+                      <span
+                        className={`font-medium ${
+                          booking.payment.status === PaymentStatus.PAID
+                            ? "text-green-600"
+                            : booking.payment.status === PaymentStatus.OPEN ||
+                              booking.payment.status === PaymentStatus.DRAFT
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {booking.payment.status}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">N/A</span>
+                    )}
+                  </p>
+                  {currentUserId === booking.renterId &&
+                    booking.status === BookingStatus.CONFIRMED &&
+                    booking.payment?.status === PaymentStatus.OPEN &&
+                    booking.payment?.id &&
+                    booking.payment?.stripeInvoiceId && (
+                      <Button
+                        onClick={() => handlePayInvoice(booking.payment!.id)}
+                        disabled={payingInvoiceId === booking.payment!.id}
+                        size="sm"
+                        className="mt-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                      >
+                        {payingInvoiceId === booking.payment!.id
+                          ? "Loading..."
+                          : "Pay Now"}
+                      </Button>
+                    )}
                   {bookingImages[booking.id] &&
                     bookingImages[booking.id].length > 0 && (
                       <div className="mt-2 pt-2 border-t">

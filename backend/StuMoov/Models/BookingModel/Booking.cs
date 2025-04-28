@@ -13,19 +13,19 @@ public class Booking : BaseModel
     [PrimaryKey("id")]
     public Guid Id { get; private set; }
     [Column("payment_id")]
-    public Guid? PaymentId { get; private set; }
+    public Guid? PaymentId { get; set; }
     [Reference(typeof(Payment), ReferenceAttribute.JoinType.Inner, true, "payment_id")]
-    public Payment? Payment { get; private set; } // Reference to the payment associated with this booking
+    public Payment? Payment { get; set; } // Reference to the payment associated with this booking
     [Column("renter_id")]
     [Required]
-    public Guid RenterId { get; private set; }
+    public Guid RenterId { get; set; }
     [Reference(typeof(Renter), ReferenceAttribute.JoinType.Inner, true, "renter_id")]
-    public Renter? Renter { get; private set; } // Reference to the renter associated with this booking
+    public Renter? Renter { get; set; } // Reference to the renter associated with this booking
     [Column("storage_id")]
     [Required]
-    public Guid StorageLocationId { get; private set; }
+    public Guid StorageLocationId { get; set; }
     [Reference(typeof(StorageLocation), ReferenceAttribute.JoinType.Inner, true, "storage_id")]
-    public StorageLocation? StorageLocation { get; private set; } // Reference to the storage location associated with this booking
+    public StorageLocation? StorageLocation { get; set; } // Reference to the storage location associated with this booking
     [Column("start_date")]
     [Required]
     public DateTime StartDate { get; set; }
@@ -43,16 +43,16 @@ public class Booking : BaseModel
     public DateTime UpdatedAt { get; set; }
 
     // Constructor for EF Core - it needs one that only takes scalar values
-    private Booking()
+    public Booking()
     {
         // This empty constructor is for EF Core
         // The private modifier restricts its usage to EF Core only
     }
 
-    public Booking(Payment? payment, Renter renter, StorageLocation storageLocation, DateTime startDate, DateTime endDate, decimal totalPrice)
+    public Booking(Payment payment, Renter renter, StorageLocation storageLocation, DateTime startDate, DateTime endDate, decimal totalPrice)
     {
         Id = Guid.NewGuid();
-        PaymentId = payment?.Id;
+        PaymentId = payment.Id;
         RenterId = renter.Id;
         StorageLocationId = storageLocation.Id;
         StartDate = startDate;

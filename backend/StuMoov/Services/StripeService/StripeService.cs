@@ -320,13 +320,16 @@ namespace StuMoov.Services.StripeService
                     return booking.Payment;
                 }
 
-                long amountInCents = (long)(booking.TotalPrice * 100);
+                long amountInCents = (long)booking.TotalPrice;
                 decimal applicationFeePercent = _configuration.GetValue<decimal>("Stripe:ApplicationFeePercent", 3m);
-                long applicationFeeInCents = (long)(amountInCents * (applicationFeePercent / 100m));
-                decimal platformFeeDecimal = applicationFeeInCents / 100m;
-                decimal amountTransferredDecimal = booking.TotalPrice - platformFeeDecimal;
+                long applicationFeeInCents = (long)Math.Round(amountInCents * (applicationFeePercent / 100m));
+                long amountTransferredInCents = amountInCents - applicationFeeInCents;
 
-                _logger.LogInformation($"Calculated amounts for Booking {bookingId}: Total={amountInCents}c, Fee={applicationFeeInCents}c");
+                decimal localAmountCharged = booking.TotalPrice;
+                decimal localPlatformFee = (decimal)applicationFeeInCents;
+                decimal localAmountTransferred = (decimal)amountTransferredInCents;
+
+                _logger.LogInformation($"Calculated amounts for Booking {bookingId}: Total={amountInCents}c, Fee={applicationFeeInCents}c, Transferred={amountTransferredInCents}c");
 
                 // 1. Create the DRAFT Invoice first to get its ID
                 var invoiceOptions = new InvoiceCreateOptions
@@ -401,9 +404,9 @@ namespace StuMoov.Services.StripeService
                     booking.Payment.Id,
                     invoice.Id,
                     finalPaymentStatus,
-                    booking.TotalPrice,
-                    platformFeeDecimal,
-                    amountTransferredDecimal
+                    localAmountCharged,
+                    localPlatformFee,
+                    localAmountTransferred
                 );
 
                 if (updatedPayment == null)

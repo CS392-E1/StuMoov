@@ -76,8 +76,8 @@ namespace StuMoov.Models.PaymentModel
             PlatformFee = platformFee;
             AmountTransferred = amountTransferred;
             Status = PaymentStatus.DRAFT;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         // Method to update details after Stripe Invoice is created

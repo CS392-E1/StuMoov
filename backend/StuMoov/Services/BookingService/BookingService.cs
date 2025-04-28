@@ -3,15 +3,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using StuMoov.Controllers;
 using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.BookingModel;
-using StuMoov.Services.StripeService;
-using Microsoft.Extensions.Logging;
 using StuMoov.Models.PaymentModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.UserModel;
-using StuMoov.Controllers;
 
 namespace StuMoov.Services.BookingService
 {
@@ -19,23 +19,34 @@ namespace StuMoov.Services.BookingService
     {
         [Required]
         private readonly BookingDao _bookingDao;
+        private readonly PaymentDao _paymentDao;
+        private readonly UserDao _userDao;
         private readonly StuMoov.Services.StripeService.StripeService _stripeService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<BookingService> _logger;
 
         // Constructor with dependency injection
-        public BookingService(BookingDao bookingDao, StuMoov.Services.StripeService.StripeService stripeService, ILogger<BookingService> logger)
+        public BookingService(
+            BookingDao bookingDao,
+            PaymentDao paymentDao,
+            UserDao userDao,
+            StuMoov.Services.StripeService.StripeService stripeService,
+            IConfiguration configuration,
+            ILogger<BookingService> logger)
         {
             _bookingDao = bookingDao;
+            _paymentDao = paymentDao;
+            _userDao = userDao;
             _stripeService = stripeService;
+            _configuration = configuration;
             _logger = logger;
         }
 
-        // Updated CreateBookingAsync to accept DTO and fetched entities
         public async Task<Response> CreateBookingAsync(CreateBookingRequest request, Renter renter, StorageLocation storageLocation)
         {
             try
             {
-                // Validate inputs (DTO/entities already validated in Controller, but can add more service-level checks)
+                // Validate inputs
                 if (request == null)
                     return new Response(StatusCodes.Status400BadRequest, "Booking request cannot be null", null);
                 if (renter == null)
@@ -49,36 +60,88 @@ namespace StuMoov.Services.BookingService
                 if (request.TotalPrice <= 0)
                     return new Response(StatusCodes.Status400BadRequest, "Total price must be greater than zero", null);
 
-                // Check if the storage location is available for the requested dates
+                // Check availability
                 if (!await _bookingDao.IsStorageLocationAvailableAsync(storageLocation.Id, request.StartDate, request.EndDate))
                     return new Response(StatusCodes.Status409Conflict, "The storage location is not available for the requested dates", null);
 
-                // Construct the Booking object using the available constructor
-                // Assuming the constructor sets the default status to PENDING or DAO handles it.
-                // The Payment is null initially.
-                Booking newBooking = new Booking(
-                    payment: null,
-                    renter: renter,
-                    storageLocation: storageLocation,
-                    startDate: request.StartDate,
-                    endDate: request.EndDate,
-                    totalPrice: request.TotalPrice // Price in cents
-                );
+                // Fetch the Lender associated with the StorageLocation
+                Lender? lender = await _userDao.GetUserByIdAsync(storageLocation.LenderId) as Lender;
+                if (lender == null)
+                {
+                    _logger.LogError($"Lender not found for StorageLocation ID: {storageLocation.Id}. Cannot create booking.");
+                    return new Response(StatusCodes.Status500InternalServerError, "Could not find the owner of the storage location.", null);
+                }
 
                 var now = DateTime.UtcNow;
-                newBooking.CreatedAt = now;
-                newBooking.UpdatedAt = now;
+                Booking newBooking = new Booking
+                {
+                    RenterId = renter.Id,
+                    StorageLocationId = storageLocation.Id,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    TotalPrice = request.TotalPrice,
+                    Status = BookingStatus.PENDING,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
 
-                // Use the DAO to create the booking
-                // Ensure the DAO's CreateAsync correctly sets the default PENDING status
-                var id = await _bookingDao.CreateAsync(newBooking);
-                var createdBooking = await _bookingDao.GetByIdAsync(id);
+                Guid? createdBookingId = await _bookingDao.CreateAsync(newBooking);
+                if (createdBookingId == null || createdBookingId == Guid.Empty)
+                {
+                    _logger.LogError("Failed to create booking record in the database.");
+                    return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the booking.", null);
+                }
 
+                Booking? createdBooking = await _bookingDao.GetByIdAsync(createdBookingId.Value);
+                if (createdBooking == null)
+                {
+                    _logger.LogError($"Failed to retrieve booking record with ID {createdBookingId.Value} after creation.");
+                    return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the booking.", null);
+                }
+
+
+                decimal amountChargedInCents = request.TotalPrice;
+                decimal applicationFeePercent = _configuration.GetValue<decimal>("Stripe:ApplicationFeePercent", 3m); // Default to 3%
+
+                decimal platformFeeInCents = Math.Round(amountChargedInCents * (applicationFeePercent / 100m), 2);
+
+                decimal amountTransferredInCents = amountChargedInCents - platformFeeInCents;
+
+                _logger.LogInformation($"Initial Payment calculation for Booking {createdBooking.Id}: Total={amountChargedInCents}c, Fee={platformFeeInCents}c, Transferred={amountTransferredInCents}c");
+
+                Payment payment = new Payment(
+                    booking: createdBooking,
+                    renter: renter,
+                    lender: lender,
+                    stripeInvoiceId: null,
+                    stripePaymentIntentId: string.Empty,
+                    amountCharged: amountChargedInCents,
+                    platformFee: platformFeeInCents,
+                    amountTransferred: amountTransferredInCents
+                );
+
+                Payment? createdPayment = await _paymentDao.AddAsync(payment);
+                if (createdPayment == null)
+                {
+                    _logger.LogError($"Failed to create payment record for Booking ID: {createdBooking.Id}. Potential data inconsistency.");
+                    return new Response(StatusCodes.Status500InternalServerError, "Failed to create associated payment record.", null);
+                }
+
+                createdBooking.PaymentId = createdPayment.Id;
+                bool updateSuccess = await _bookingDao.UpdateAsync(createdBooking);
+                if (!updateSuccess)
+                {
+                    _logger.LogError($"Failed to link Payment ID {createdPayment.Id} to Booking ID {createdBooking.Id}.");
+                    return new Response(StatusCodes.Status500InternalServerError, "Failed to finalize booking creation.", null);
+                }
+
+
+                _logger.LogInformation($"Booking {createdBooking.Id} and Payment {createdPayment.Id} created successfully.");
                 return new Response(StatusCodes.Status201Created, "Booking created successfully", createdBooking);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating booking: {ex}");
+                _logger.LogError(ex, $"Error creating booking: {ex.Message}");
                 return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the booking.", null);
             }
         }
@@ -299,11 +362,17 @@ namespace StuMoov.Services.BookingService
                 if (overlappingBookings.Any())
                     return new Response(StatusCodes.Status409Conflict, "The requested dates conflict with existing bookings", null);
 
-                // Update the booking
-                if (!await _bookingDao.UpdateAsync(id, startDate, endDate, totalPrice))
+                // Update the existing booking object with new values
+                existingBooking.StartDate = startDate;
+                existingBooking.EndDate = endDate;
+                existingBooking.TotalPrice = totalPrice;
+                existingBooking.UpdatedAt = DateTime.UtcNow; // Update the timestamp
+
+                // Update the booking using the modified object
+                if (!await _bookingDao.UpdateAsync(existingBooking))
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to update booking", null);
 
-                // Get the updated booking
+                // Get the updated booking (optional, could return existingBooking if UpdateAsync modifies it in place)
                 var updatedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking updated successfully", updatedBooking);
             }

@@ -97,18 +97,19 @@ public class BookingDao
         return true;
     }
 
-    // Update booking details
-    public async Task<bool> UpdateAsync(Guid id, DateTime startDate, DateTime endDate, decimal totalPrice)
+    public async Task<bool> UpdateAsync(Booking bookingUpdate)
     {
-        var booking = await _dbContext.Bookings.FindAsync(id);
+        var booking = await _dbContext.Bookings.FindAsync(bookingUpdate.Id);
         if (booking == null)
         {
             return false;
         }
 
-        booking.StartDate = startDate;
-        booking.EndDate = endDate;
-        booking.TotalPrice = totalPrice;
+        _dbContext.Entry(booking).CurrentValues.SetValues(bookingUpdate);
+        _dbContext.Entry(booking).Reference(b => b.Payment).IsModified = false;
+        _dbContext.Entry(booking).Reference(b => b.Renter).IsModified = false;
+        _dbContext.Entry(booking).Reference(b => b.StorageLocation).IsModified = false;
+
         await _dbContext.SaveChangesAsync();
 
         return true;
