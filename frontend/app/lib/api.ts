@@ -8,7 +8,6 @@ import {
 import { StorageLocation } from "@/types/storage";
 import { Session, Message } from "@/types/chat";
 import { Booking } from "@/types/booking";
-import { Image, ImagePayload } from "@/types/image";
 
 axios.defaults.baseURL = "http://localhost:5004/api";
 axios.defaults.withCredentials = true; // Important for cookies
@@ -109,13 +108,15 @@ export async function getStorageLocationsByCoordinates(
   });
 }
 
+
 export async function getStorageLocationsByDimensions(
   length?: number,
   width?: number,
   height?: number
 ): Promise<AxiosResponse<ApiResponse<StorageLocation[]>>> {
   try {
-    const params: { length?: number; width?: number; height?: number } = {}; // Explicitly type params
+    // Construct query parameters based on provided filters
+    const params: any = {};
     if (length) params.length = length;
     if (width) params.width = width;
     if (height) params.height = height;
@@ -150,8 +151,10 @@ export async function getStorageLocationsByCapacity(
 }
 
 export async function createStorageLocation(
-  // Update type to include imageUrl and exclude only generated fields
-  storageData: Omit<StorageLocation, "id" | "createdAt" | "updatedAt">
+  storageData: Omit<
+    StorageLocation,
+    "id" | "createdAt" | "updatedAt" | "imageUrl"
+  >
 ): Promise<AxiosResponse<ApiResponse<StorageLocation>>> {
   return axios.post("/storage", storageData);
 }
@@ -219,41 +222,5 @@ export async function getSessionByParticipants(
     validateStatus: function (status) {
       return (status >= 200 && status < 300) || status === 404;
     },
-  });
-}
-
-export async function createBooking(
-  booking: Booking
-): Promise<AxiosResponse<ApiResponse<Booking>>> {
-  return axios.post("/bookings", booking, { withCredentials: true });
-}
-
-export async function uploadStorageImage(
-  imageUrl: string,
-  storageLocationId: string
-): Promise<AxiosResponse<ApiResponse<Image>>> {
-  const payload: ImagePayload = { url: imageUrl, storageLocationId };
-  return axios.post("/image/storage", payload, { withCredentials: true });
-}
-
-export async function uploadDropoffImage(
-  imageUrl: string,
-  bookingId: string
-): Promise<AxiosResponse<ApiResponse<Image>>> {
-  const payload: ImagePayload = { url: imageUrl, bookingId };
-  return axios.post("/image/dropoff", payload, { withCredentials: true });
-}
-
-export async function getImagesByBookingId(
-  bookingId: string
-): Promise<AxiosResponse<ApiResponse<Image[]>>> {
-  return axios.get(`/image/booking/${bookingId}`, { withCredentials: true });
-}
-
-export async function getImagesByStorageLocationId(
-  storageLocationId: string
-): Promise<AxiosResponse<ApiResponse<Image[]>>> {
-  return axios.get(`/image/storage/${storageLocationId}`, {
-    withCredentials: true,
   });
 }

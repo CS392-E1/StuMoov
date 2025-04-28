@@ -3,9 +3,6 @@ using StuMoov.Dao;
 using StuMoov.Models;
 using StuMoov.Models.BookingModel;
 using StuMoov.Services.BookingService;
-using System.ComponentModel.DataAnnotations;
-using StuMoov.Models.StorageLocationModel;
-using StuMoov.Models.UserModel;
 
 namespace StuMoov.Controllers
 {
@@ -14,15 +11,12 @@ namespace StuMoov.Controllers
     public class BookingController : ControllerBase
     {
         private readonly BookingService _bookingService;
-        private readonly UserDao _userDao;
-        private readonly StorageLocationDao _storageLocationDao;
 
         // Constructor to inject BookingService dependency
-        public BookingController(BookingService bookingService, UserDao userDao, StorageLocationDao storageLocationDao)
+        public BookingController(BookingDao bookingDao)
         {
-            _bookingService = bookingService;
-            _userDao = userDao;
-            _storageLocationDao = storageLocationDao;
+            // Create BookingService instance using injected DAO
+            this._bookingService = new BookingService(bookingDao);
         }
 
         // GET: api/bookings
@@ -67,27 +61,14 @@ namespace StuMoov.Controllers
 
         // POST: api/bookings
         [HttpPost]
-        public async Task<ActionResult<Response>> CreateBooking([FromBody] CreateBookingRequest request)
+        public async Task<ActionResult<Response>> CreateBooking([FromBody] Booking booking)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new Response(StatusCodes.Status400BadRequest, "Invalid request data.", ModelState));
+                return BadRequest(ModelState);
             }
 
-            User? renterUser = await _userDao.GetUserByIdAsync(request.RenterId);
-            StorageLocation? storageLocation = await _storageLocationDao.GetByIdAsync(request.StorageLocationId);
-
-            // Validate fetched objects
-            if (renterUser == null || !(renterUser is Renter renter))
-            {
-                return NotFound(new Response(StatusCodes.Status404NotFound, "Renter not found or user is not a Renter.", null));
-            }
-            if (storageLocation == null)
-            {
-                return NotFound(new Response(StatusCodes.Status404NotFound, "Storage location not found.", null));
-            }
-
-            Response response = await _bookingService.CreateBookingAsync(request, renter, storageLocation);
+            Response response = await _bookingService.CreateBookingAsync(booking);
             return StatusCode(response.Status, response);
         }
 
@@ -196,20 +177,4 @@ namespace StuMoov.Controllers
             return response.Status == 200 ? Ok() : NotFound();
         }
     }
-
-    public class CreateBookingRequest
-    {
-        [Required]
-        public Guid RenterId { get; set; }
-        [Required]
-        public Guid StorageLocationId { get; set; }
-        [Required]
-        public DateTime StartDate { get; set; }
-        [Required]
-        public DateTime EndDate { get; set; }
-        [Required]
-        public decimal TotalPrice { get; set; } // Price in cents
-    }
-
-
 }
