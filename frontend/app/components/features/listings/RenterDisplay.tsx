@@ -23,6 +23,7 @@ import {
   getImagesByBookingId,
   createStripeCustomer,
   getInvoiceUrl,
+  getImagesByStorageLocationId,
 } from "@/lib/api";
 
 type RenterDisplayProps = {
@@ -53,6 +54,8 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     {}
   );
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
+  const [listingImageUrl, setListingImageUrl] = useState<string | null>(null);
+  const [loadingListingImage, setLoadingListingImage] = useState<boolean>(true);
 
   type CalendarRangeValue = [Date | null, Date | null] | null;
 
@@ -365,6 +368,34 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (!listing.id) return;
+
+    const fetchListingImage = async () => {
+      setLoadingListingImage(true);
+      try {
+        const response = await getImagesByStorageLocationId(listing.id);
+        if (
+          response.status === 200 &&
+          response.data.data &&
+          response.data.data.length > 0
+        ) {
+          setListingImageUrl(response.data.data[0].url);
+        } else {
+          console.log("No listing image found for", listing.id);
+          setListingImageUrl(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch listing image:", error);
+        setListingImageUrl(null);
+      } finally {
+        setLoadingListingImage(false);
+      }
+    };
+
+    fetchListingImage();
+  }, [listing.id]);
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
@@ -376,6 +407,21 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
       {/* details tab */}
       <TabsContent value="details" className="mt-4">
         <div className="space-y-4">
+          {loadingListingImage ? (
+            <div className="h-48 flex items-center justify-center text-gray-400">
+              Loading image...
+            </div>
+          ) : listingImageUrl ? (
+            <img
+              src={listingImageUrl}
+              alt={`Image for ${listing.name}`}
+              className="w-full h-48 object-cover rounded-md border mb-4"
+            />
+          ) : (
+            <div className="h-48 flex items-center justify-center bg-gray-100 text-gray-400 rounded-md border mb-4">
+              No Image Available
+            </div>
+          )}
           <h2 className="text-xl font-semibold">{listing.name}</h2>{" "}
           {/* Listing Title */}
           <p className="text-gray-600">{listing.description}</p>

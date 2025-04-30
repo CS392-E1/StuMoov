@@ -19,12 +19,21 @@ import {
   uploadDropoffImage,
   getImagesByBookingId,
   confirmBooking,
+  getImagesByStorageLocationId,
 } from "@/lib/api";
 
 // Sorry if this is really messy, I should have split this into multiple components
 // This might the worst code mankind has ever seen, please be warned
 
-const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
+const DetailsTabContent = ({
+  listing,
+  imageUrl,
+  isLoadingImage,
+}: {
+  listing: StorageLocation;
+  imageUrl: string | null;
+  isLoadingImage: boolean;
+}) => {
   // TODO: Implement Edit functionality
   const handleEdit = () => {
     console.log("Edit listing:", listing.id);
@@ -32,6 +41,23 @@ const DetailsTabContent = ({ listing }: { listing: StorageLocation }) => {
 
   return (
     <div className="space-y-4">
+      {/* Display Listing Image */}
+      {isLoadingImage ? (
+        <div className="h-48 flex items-center justify-center text-gray-400">
+          Loading image...
+        </div>
+      ) : imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={`Image for ${listing.name}`}
+          className="w-full h-48 object-cover rounded-md border mb-4"
+        />
+      ) : (
+        <div className="h-48 flex items-center justify-center bg-gray-100 text-gray-400 rounded-md border mb-4">
+          No Image Available
+        </div>
+      )}
+
       <div>
         <h4 className="font-semibold text-lg mb-1">Description</h4>
         <p className="text-gray-700 dark:text-gray-300">
@@ -540,6 +566,38 @@ export const LenderDisplay: React.FC<LenderDisplayProps> = ({
   currentUserId,
 }) => {
   const [activeTab, setActiveTab] = useState("details");
+  const [listingImageUrl, setListingImageUrl] = useState<string | null>(null); // State for listing image URL
+  const [loadingListingImage, setLoadingListingImage] = useState<boolean>(true); // Loading state for image
+
+  // Fetch Listing Image
+  useEffect(() => {
+    if (!listing.id) return;
+
+    const fetchListingImage = async () => {
+      setLoadingListingImage(true);
+      try {
+        const response = await getImagesByStorageLocationId(listing.id);
+        if (
+          response.status === 200 &&
+          response.data.data &&
+          response.data.data.length > 0
+        ) {
+          // Assuming the first image is the primary listing image
+          setListingImageUrl(response.data.data[0].url);
+        } else {
+          console.log("No listing image found for", listing.id);
+          setListingImageUrl(null); // No image found
+        }
+      } catch (error) {
+        console.error("Failed to fetch listing image:", error);
+        setListingImageUrl(null); // Error occurred
+      } finally {
+        setLoadingListingImage(false);
+      }
+    };
+
+    fetchListingImage();
+  }, [listing.id]);
 
   if (!currentUserId) {
     return <div>Error: User not identified.</div>;
@@ -557,7 +615,11 @@ export const LenderDisplay: React.FC<LenderDisplayProps> = ({
         <TabsTrigger value="status">Status</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="mt-4">
-        <DetailsTabContent listing={listing} />
+        <DetailsTabContent
+          listing={listing}
+          imageUrl={listingImageUrl}
+          isLoadingImage={loadingListingImage}
+        />
       </TabsContent>
       <TabsContent value="messages" className="mt-4">
         {currentUserId && (
