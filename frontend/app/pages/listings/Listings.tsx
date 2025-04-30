@@ -122,17 +122,23 @@ export default function Listings() {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        // If no filters, fetch all locations
         let response;
-        if (Object.keys(filters).length === 0) {
-          response = await getStorageLocations();
-        } else {
+        // Check filters and call the appropriate API
+        if (filters.length || filters.width || filters.height) {
           response = await getStorageLocationsByDimensions(
             filters.length,
             filters.width,
             filters.height
           );
+        } else if (filters.volume) {
+          response = await getStorageLocationsByCapacity(filters.volume);
+        } else if (filters.price) {
+          response = await getStorageLocationsByPrice(filters.price);
+        } else {
+          // If no specific filters are set, fetch all locations
+          response = await getStorageLocations();
         }
+
         if (
           response.status >= 200 &&
           response.status < 300 &&
@@ -193,28 +199,6 @@ export default function Listings() {
 
   const handleApplyFilters = async (newFilters: any) => {
     setFilters(newFilters);
-    let filteredLocations: StorageLocation[] = [];
-
-    if (newFilters.length || newFilters.width || newFilters.height) {
-      const response = await getStorageLocationsByDimensions(
-        newFilters.length,
-        newFilters.width,
-        newFilters.height
-      );
-      filteredLocations = response.data.data || [];
-    }
-
-    if (newFilters.volume) {
-      const response = await getStorageLocationsByCapacity(newFilters.volume);
-      filteredLocations = response.data.data || [];
-    }
-
-    if (newFilters.price) {
-      const response = await getStorageLocationsByPrice(newFilters.price);
-      filteredLocations = response.data.data || [];
-    }
-
-    setLocations(filteredLocations);
   };
 
   return (
