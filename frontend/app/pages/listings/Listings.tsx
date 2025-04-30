@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { AxiosError } from "axios";
 import {
   GoogleMaps,
   GoogleMapsRef,
@@ -16,6 +19,7 @@ import {
   getStorageLocationsByCapacity,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
+import { Filter } from "@/types/filter";
 
 const FilterPopup = ({
   onClose,
@@ -23,24 +27,25 @@ const FilterPopup = ({
   filters,
 }: {
   onClose: () => void;
-  onApplyFilters: (filters: any) => void;
-  filters: any;
+  onApplyFilters: (filters: Filter) => void;
+  filters: Filter;
 }) => {
-  const [length, setLength] = useState<number | string>(filters.length || "");
-  const [width, setWidth] = useState<number | string>(filters.width || "");
-  const [height, setHeight] = useState<number | string>(filters.height || "");
-  const [volume, setVolume] = useState<number | string>(filters.volume || "");
-  const [price, setPrice] = useState<number | string>(filters.price || "");
+  const [length, setLength] = useState<string>(String(filters.length ?? ""));
+  const [width, setWidth] = useState<string>(String(filters.width ?? ""));
+  const [height, setHeight] = useState<string>(String(filters.height ?? ""));
+  const [volume, setVolume] = useState<string>(String(filters.volume ?? ""));
+  const [price, setPrice] = useState<string>(String(filters.price ?? ""));
 
   const handleApplyFilters = () => {
-    onApplyFilters({
-      length: length ? parseFloat(length as string) : undefined,
-      width: width ? parseFloat(width as string) : undefined,
-      height: height ? parseFloat(height as string) : undefined,
-      volume: volume ? parseFloat(volume as string) : undefined,
-      price: price ? parseFloat(price as string) : undefined,
-    });
-    onClose(); // Close the filter popup after applying
+    const appliedFilters: Filter = {
+      length: length ? parseFloat(length) : undefined,
+      width: width ? parseFloat(width) : undefined,
+      height: height ? parseFloat(height) : undefined,
+      volume: volume ? parseFloat(volume) : undefined,
+      price: price ? parseFloat(price) : undefined,
+    };
+    onApplyFilters(appliedFilters);
+    onClose();
   };
 
   return (
@@ -107,9 +112,16 @@ export default function Listings() {
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const { user } = useAuth();
 
-  const [filters, setFilters] = useState<any>({});
+  const initialFilterState: Filter = {
+    length: undefined,
+    width: undefined,
+    height: undefined,
+    volume: undefined,
+    price: undefined,
+  };
+  const [filters, setFilters] = useState<Filter>(initialFilterState);
 
-  const { geocodeAddress, isLoading, error } = useGeocoding();
+  const { geocodeAddress } = useGeocoding();
 
   const handleAddLocation = (newLocation: StorageLocation) => {
     setLocations((prevLocations) => [...prevLocations, newLocation]);
@@ -122,31 +134,41 @@ export default function Listings() {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        // If no filters, fetch all locations
         let response;
-        if (Object.keys(filters).length === 0) {
-          response = await getStorageLocations();
-        } else {
+        if (filters.length || filters.width || filters.height) {
           response = await getStorageLocationsByDimensions(
             filters.length,
             filters.width,
             filters.height
           );
+        } else if (filters.volume) {
+          response = await getStorageLocationsByCapacity(filters.volume);
+        } else if (filters.price) {
+          response = await getStorageLocationsByPrice(filters.price);
+        } else {
+          response = await getStorageLocations();
         }
+
         if (
           response.status >= 200 &&
           response.status < 300 &&
           response.data?.data
         ) {
           setLocations(response.data.data);
-        } else {
-          console.error(
-            "Failed to fetch storage locations:",
-            response.data?.message || `Status code ${response.status}`
-          );
         }
       } catch (err) {
-        console.error("Failed to fetch storage locations:", err);
+        if (
+          err instanceof AxiosError &&
+          err.response &&
+          err.response.status === 404
+        ) {
+          setLocations([]);
+          toast.info("No listings found matching your filters.");
+        } else {
+          console.error("Failed to fetch storage locations:", err);
+          setLocations([]);
+          toast.error("An error occurred while fetching listings.");
+        }
       }
     };
 
@@ -191,34 +213,13 @@ export default function Listings() {
     }
   };
 
-  const handleApplyFilters = async (newFilters: any) => {
+  const handleApplyFilters = async (newFilters: Filter) => {
     setFilters(newFilters);
-    let filteredLocations: StorageLocation[] = [];
-
-    if (newFilters.length || newFilters.width || newFilters.height) {
-      const response = await getStorageLocationsByDimensions(
-        newFilters.length,
-        newFilters.width,
-        newFilters.height
-      );
-      filteredLocations = response.data.data || [];
-    }
-
-    if (newFilters.volume) {
-      const response = await getStorageLocationsByCapacity(newFilters.volume);
-      filteredLocations = response.data.data || [];
-    }
-
-    if (newFilters.price) {
-      const response = await getStorageLocationsByPrice(newFilters.price);
-      filteredLocations = response.data.data || [];
-    }
-
-    setLocations(filteredLocations);
   };
 
   return (
     <div className="flex flex-col h-screen w-full">
+      <Toaster position="bottom-right" />
       <div className="flex flex-1 w-full">
         {/* left panel */}
         <div className="w-1/3 p-4 overflow-y-auto max-h-[80vh]">

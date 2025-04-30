@@ -51,10 +51,6 @@ export function loginFirebase(
 export function signOutFirebase(): Promise<void> {
   return signOut(auth)
     .then(() => {
-      // clear local storage items related to authentication
-      localStorage.removeItem("stuMoov_jwt");
-      localStorage.removeItem("stuMoov_role");
-      localStorage.removeItem("stuMoov_user");
       console.log("Sign-out successful");
     })
     .catch((error) => {
