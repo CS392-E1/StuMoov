@@ -62,9 +62,9 @@ namespace StuMoov.Controllers
                 return NotFound(new Response(StatusCodes.Status404NotFound, "Lender not found or user is not a lender.", null));
             }
 
-            double length = request.Length ?? 0;
-            double width = request.Width ?? 0;
-            double height = request.Height ?? 0;
+            double length = request.StorageLength ?? 0;
+            double width = request.StorageWidth ?? 0;
+            double height = request.StorageHeight ?? 0;
             double volume = length * width * height;
             double price = request.Price ?? 0;
 
@@ -173,7 +173,7 @@ public class CreateStorageLocationRequest
     public double Lat { get; set; }
     public double Lng { get; set; }
     public double? Price { get; set; }
-    public double? Length { get; set; }
-    public double? Width { get; set; }
-    public double? Height { get; set; }
+    public double? StorageLength { get; set; }
+    public double? StorageWidth { get; set; }
+    public double? StorageHeight { get; set; }
 }
