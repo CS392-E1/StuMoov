@@ -16,6 +16,7 @@ import {
   getStorageLocationsByCapacity,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
+import { Filter } from "@/types/filter";
 
 const FilterPopup = ({
   onClose,
@@ -23,24 +24,25 @@ const FilterPopup = ({
   filters,
 }: {
   onClose: () => void;
-  onApplyFilters: (filters: any) => void;
-  filters: any;
+  onApplyFilters: (filters: Filter) => void;
+  filters: Filter;
 }) => {
-  const [length, setLength] = useState<number | string>(filters.length || "");
-  const [width, setWidth] = useState<number | string>(filters.width || "");
-  const [height, setHeight] = useState<number | string>(filters.height || "");
-  const [volume, setVolume] = useState<number | string>(filters.volume || "");
-  const [price, setPrice] = useState<number | string>(filters.price || "");
+  const [length, setLength] = useState<string>(String(filters.length ?? ""));
+  const [width, setWidth] = useState<string>(String(filters.width ?? ""));
+  const [height, setHeight] = useState<string>(String(filters.height ?? ""));
+  const [volume, setVolume] = useState<string>(String(filters.volume ?? ""));
+  const [price, setPrice] = useState<string>(String(filters.price ?? ""));
 
   const handleApplyFilters = () => {
-    onApplyFilters({
-      length: length ? parseFloat(length as string) : undefined,
-      width: width ? parseFloat(width as string) : undefined,
-      height: height ? parseFloat(height as string) : undefined,
-      volume: volume ? parseFloat(volume as string) : undefined,
-      price: price ? parseFloat(price as string) : undefined,
-    });
-    onClose(); // Close the filter popup after applying
+    const appliedFilters: Filter = {
+      length: length ? parseFloat(length) : undefined,
+      width: width ? parseFloat(width) : undefined,
+      height: height ? parseFloat(height) : undefined,
+      volume: volume ? parseFloat(volume) : undefined,
+      price: price ? parseFloat(price) : undefined,
+    };
+    onApplyFilters(appliedFilters);
+    onClose();
   };
 
   return (
@@ -107,7 +109,14 @@ export default function Listings() {
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const { user } = useAuth();
 
-  const [filters, setFilters] = useState<any>({});
+  const initialFilterState: Filter = {
+    length: undefined,
+    width: undefined,
+    height: undefined,
+    volume: undefined,
+    price: undefined,
+  };
+  const [filters, setFilters] = useState<Filter>(initialFilterState);
 
   const { geocodeAddress } = useGeocoding();
 
@@ -123,7 +132,6 @@ export default function Listings() {
     const fetchLocations = async () => {
       try {
         let response;
-        // Check filters and call the appropriate API
         if (filters.length || filters.width || filters.height) {
           response = await getStorageLocationsByDimensions(
             filters.length,
@@ -135,7 +143,6 @@ export default function Listings() {
         } else if (filters.price) {
           response = await getStorageLocationsByPrice(filters.price);
         } else {
-          // If no specific filters are set, fetch all locations
           response = await getStorageLocations();
         }
 
@@ -197,7 +204,7 @@ export default function Listings() {
     }
   };
 
-  const handleApplyFilters = async (newFilters: any) => {
+  const handleApplyFilters = async (newFilters: Filter) => {
     setFilters(newFilters);
   };
 
