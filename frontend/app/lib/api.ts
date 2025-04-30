@@ -221,9 +221,6 @@ export async function getSessionByParticipants(
   return axios.get(`/chat/sessions/participants`, {
     params: { renterId, lenderId, storageLocationId },
     withCredentials: true,
-    validateStatus: function (status) {
-      return (status >= 200 && status < 300) || status === 404;
-    },
   });
 }
 
@@ -279,11 +276,9 @@ export async function confirmBooking(
   );
 }
 
-// Add function to get invoice URL
 export async function getInvoiceUrl(
   paymentId: string
 ): Promise<AxiosResponse<ApiResponse<string>>> {
-  // Returns the URL string
   return axios.get(`/payments/${paymentId}/invoice-url`, {
     withCredentials: true,
   });
