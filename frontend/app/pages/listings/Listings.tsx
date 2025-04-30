@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { AxiosError } from "axios";
 import {
   GoogleMaps,
   GoogleMapsRef,
@@ -152,14 +155,20 @@ export default function Listings() {
           response.data?.data
         ) {
           setLocations(response.data.data);
-        } else {
-          console.error(
-            "Failed to fetch storage locations:",
-            response.data?.message || `Status code ${response.status}`
-          );
         }
       } catch (err) {
-        console.error("Failed to fetch storage locations:", err);
+        if (
+          err instanceof AxiosError &&
+          err.response &&
+          err.response.status === 404
+        ) {
+          setLocations([]);
+          toast.info("No listings found matching your filters.");
+        } else {
+          console.error("Failed to fetch storage locations:", err);
+          setLocations([]);
+          toast.error("An error occurred while fetching listings.");
+        }
       }
     };
 
@@ -210,6 +219,7 @@ export default function Listings() {
 
   return (
     <div className="flex flex-col h-screen w-full">
+      <Toaster position="bottom-right" />
       <div className="flex flex-1 w-full">
         {/* left panel */}
         <div className="w-1/3 p-4 overflow-y-auto max-h-[80vh]">
