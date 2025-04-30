@@ -109,7 +109,7 @@ export default function Listings() {
 
   const [filters, setFilters] = useState<any>({});
 
-  const { geocodeAddress, isLoading, error } = useGeocoding();
+  const { geocodeAddress } = useGeocoding();
 
   const handleAddLocation = (newLocation: StorageLocation) => {
     setLocations((prevLocations) => [...prevLocations, newLocation]);
