@@ -24,7 +24,10 @@ type AddListingProps = {
 };
 
 export function AddListing({ onAddLocation }: AddListingProps) {
+  // State for controlling dialog open/close
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Form input states
   const [newLocationName, setNewLocationName] = useState("");
   const [newLocationDesc, setNewLocationDesc] = useState("");
   const [address, setAddress] = useState("");
@@ -32,9 +35,10 @@ export function AddListing({ onAddLocation }: AddListingProps) {
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
-  const { user } = useAuth();
-  const { geocodeAddress, isLoading: isGeocoding } = useGeocoding();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const { user } = useAuth(); // Get current user info
+  const { geocodeAddress, isLoading: isGeocoding } = useGeocoding(); // Custom hook for geocoding
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Uploaded image URL
 
   const handleCreateListing = async () => {
     if (!user) {
@@ -42,14 +46,12 @@ export function AddListing({ onAddLocation }: AddListingProps) {
       return;
     }
 
+    // Geocode the address to get lat/lng coordinates
     let coords: { lat: number; lng: number };
     try {
       coords = await geocodeAddress(address);
-      toast.info(
-        `Geocoded address: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
-      );
+      toast.info(`Geocoded address: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
     } catch (geoError: unknown) {
-      console.error("Geocoding failed:", geoError);
       const errorMsg =
         typeof geoError === "object" &&
         geoError !== null &&
@@ -60,6 +62,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
       return;
     }
 
+    // Prepare the payload for the new listing
     const newLocationData = {
       lenderId: user.id,
       name: newLocationName,
@@ -77,39 +80,31 @@ export function AddListing({ onAddLocation }: AddListingProps) {
     const loadingToastId = toast.loading("Creating listing...");
 
     try {
+      // API call to create the listing
       const response = await createStorageLocation(newLocationData);
 
-      if (
-        response.status >= 200 &&
-        response.status < 300 &&
-        response.data?.data
-      ) {
+      if (response.status >= 200 && response.status < 300 && response.data?.data) {
         const createdListing = Array.isArray(response.data.data)
           ? response.data.data[0]
           : response.data.data;
 
         if (createdListing && createdListing.id) {
-          toast.success("Listing created successfully!", {
-            id: loadingToastId,
-          });
+          toast.success("Listing created successfully!", { id: loadingToastId });
 
+          // Optional: upload image to listing if exists
           if (imageUrl) {
             try {
               await uploadStorageImage(imageUrl, createdListing.id);
               toast.info("Listing image associated successfully.");
             } catch (imgError) {
-              console.error(
-                "Failed to associate image with listing:",
-                imgError
-              );
-              toast.error(
-                "Listing created, but failed to associate image. You may need to re-upload."
-              );
+              toast.error("Listing created, but failed to associate image. You may need to re-upload.");
             }
           }
 
+          // Call parent callback with new listing
           onAddLocation(createdListing);
 
+          // Reset form and close dialog
           setDialogOpen(false);
           setNewLocationName("");
           setNewLocationDesc("");
@@ -120,50 +115,39 @@ export function AddListing({ onAddLocation }: AddListingProps) {
           setHeight("");
           setImageUrl(null);
         } else {
-          console.error(
-            "Unexpected data format received after creating listing:",
-            response.data.data
-          );
-          toast.error("Received unexpected data from server.", {
-            id: loadingToastId,
-          });
+          toast.error("Received unexpected data from server.", { id: loadingToastId });
         }
       } else {
         const errorMsg =
-          response.data?.message ||
-          `Failed with status code ${response.status}`;
-        console.error("Failed to create storage location:", errorMsg);
-        toast.error(`Failed to create listing: ${errorMsg}`, {
-          id: loadingToastId,
-        });
+          response.data?.message || `Failed with status code ${response.status}`;
+        toast.error(`Failed to create listing: ${errorMsg}`, { id: loadingToastId });
       }
     } catch (err: unknown) {
-      console.error("Failed to create storage location (catch):", err);
       const errorMsg =
         err instanceof Error ? err.message : "An unexpected error occurred.";
-      toast.error(`Failed to create listing: ${errorMsg}`, {
-        id: loadingToastId,
-      });
+      toast.error(`Failed to create listing: ${errorMsg}`, { id: loadingToastId });
     }
   };
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Trigger Button */}
       <DialogTrigger asChild>
         <button className="absolute top-4 right-4 z-10 bg-blue-600 text-white text-2xl rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition p-2">
           <Plus />
         </button>
       </DialogTrigger>
+
+      {/* Dialog Content */}
       <DialogContent className="bg-white max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-blue-600">
-            Add New Listing
-          </DialogTitle>
-          <DialogDescription>
-            Please fill out the form below to add a new listing.
-          </DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-blue-600">Add New Listing</DialogTitle>
+          <DialogDescription>Please fill out the form below to add a new listing.</DialogDescription>
         </DialogHeader>
+
+        {/* Form Fields */}
         <div className="space-y-4">
+          {/* Listing Name */}
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="listingName">Listing Name</Label>
             <Input
@@ -175,6 +159,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             />
           </div>
 
+          {/* Description */}
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -186,6 +171,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             />
           </div>
 
+          {/* Address */}
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="address">Address</Label>
             <Input
@@ -197,12 +183,11 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             />
           </div>
 
+          {/* Price */}
           <div className="grid w-full items-center gap-1.5">
             <Label htmlFor="price">Price ($ per month)</Label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                $
-              </span>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
               <Input
                 id="price"
                 type="number"
@@ -215,6 +200,7 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             </div>
           </div>
 
+          {/* Dimensions: Length / Width / Height */}
           <div className="grid grid-cols-3 gap-4">
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="length">Length (ft)</Label>
@@ -251,9 +237,11 @@ export function AddListing({ onAddLocation }: AddListingProps) {
             </div>
           </div>
 
+          {/* Image Upload */}
           <ImageUpload onUploadSuccess={setImageUrl} />
         </div>
 
+        {/* Submit Button */}
         <DialogFooter className="mx-auto">
           <div className="mt-6">
             <button

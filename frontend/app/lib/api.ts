@@ -19,7 +19,10 @@ axios.defaults.baseURL = "http://localhost:5004/api";
 axios.defaults.withCredentials = true; // Important for cookies
 
 // TODO: Move these to their own dedicated files
+//these functions all refer to the backend, using associated models and controllers
 
+
+//functions related to register, login
 export function register(
   idToken: string,
   role: UserRole
@@ -56,6 +59,7 @@ export async function logout(): Promise<AxiosResponse<ApiResponse<null>>> {
   return axios.post("/auth/logout", {}, { withCredentials: true });
 }
 
+//authentication, and fetching users
 export async function verifyAuth(): Promise<
   AxiosResponse<ApiResponse<VerifyResponse>>
 > {
@@ -70,6 +74,7 @@ export async function fetchUserById(
   return axios.get(`/user/${userId}`);
 }
 
+//stripe calls
 export async function getOnboardingLink(): Promise<
   AxiosResponse<ApiResponse<OnboardingLinkResponse>>
 > {
@@ -86,6 +91,7 @@ export async function getAccountStatus(): Promise<
   });
 }
 
+//gradding storagelocations, using various methods, id, userid, etc
 export async function getStorageLocations(): Promise<
   AxiosResponse<ApiResponse<StorageLocation[]>>
 > {
@@ -154,6 +160,7 @@ export async function getStorageLocationsByCapacity(
   }
 }
 
+//create and update storage
 export async function createStorageLocation(
   // Update type to include imageUrl and exclude only generated fields
   storageData: Omit<StorageLocation, "id" | "createdAt" | "updatedAt">
@@ -168,6 +175,7 @@ export async function updateStorageLocation(
   return axios.put(`/storage/${id}`, storageLocation);
 }
 
+//messaging related functions, session grabs, session creates and messages
 export async function getMySessions(): Promise<
   AxiosResponse<ApiResponse<Session[]>>
 > {
@@ -224,12 +232,14 @@ export async function getSessionByParticipants(
   });
 }
 
+//booking functions, as well as image related work
 export async function createBooking(
   booking: Booking
 ): Promise<AxiosResponse<ApiResponse<Booking>>> {
   return axios.post("/bookings", booking, { withCredentials: true });
 }
 
+//image related functions
 export async function uploadStorageImage(
   imageUrl: string,
   storageLocationId: string
@@ -266,6 +276,7 @@ export async function createStripeCustomer(): Promise<
   return axios.post("/stripe/customers", {}, { withCredentials: true });
 }
 
+//bookings and invoice related functions
 export async function confirmBooking(
   bookingId: string
 ): Promise<AxiosResponse<ApiResponse<Booking>>> {

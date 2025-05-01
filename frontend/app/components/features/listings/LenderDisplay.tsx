@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import ImageUpload from "./ImageUpload";
 
+// imports for react, types, components
+
 import {
   getMySessions,
   getMessagesBySessionId,
@@ -22,9 +24,9 @@ import {
   getImagesByStorageLocationId,
 } from "@/lib/api";
 
-// Sorry if this is really messy, I should have split this into multiple components
-// This might the worst code mankind has ever seen, please be warned
+//imports for api calls
 
+//tab for details with associated fields and their types
 const DetailsTabContent = ({
   listing,
   imageUrl,
@@ -34,7 +36,6 @@ const DetailsTabContent = ({
   imageUrl: string | null;
   isLoadingImage: boolean;
 }) => {
-  // TODO: Implement Edit functionality
   const handleEdit = () => {
     console.log("Edit listing:", listing.id);
   };
@@ -57,7 +58,7 @@ const DetailsTabContent = ({
           No Image Available
         </div>
       )}
-
+      {/* Below code for fields such as description, address, dimensions, price and edit for details tab */}
       <div>
         <h4 className="font-semibold text-lg mb-1">Description</h4>
         <p className="text-gray-700 dark:text-gray-300">
@@ -97,6 +98,7 @@ const DetailsTabContent = ({
   );
 };
 
+//Message tab code start
 const MessagesTabContent = ({
   lenderId,
   listingId,
@@ -113,6 +115,7 @@ const MessagesTabContent = ({
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  //storage of various fields related to the messaging session
 
   // TODO: Could cache this?
   // Fetch all sessions for the lender on mount
@@ -152,7 +155,6 @@ const MessagesTabContent = ({
     fetchSessions();
   }, [lenderId, listingId]);
 
-  // TODO: Could cache this?
   // Fetch messages when a session is selected
   useEffect(() => {
     if (!selectedSessionId) {
@@ -163,11 +165,12 @@ const MessagesTabContent = ({
       setLoadingMessages(true);
       setError(null);
       try {
-        const response = await getMessagesBySessionId(selectedSessionId);
+        const response = await getMessagesBySessionId(selectedSessionId); //fetch sessions for logged in user by ID
         if (
           response.status >= 200 &&
           response.status < 300 &&
           response.data.data
+          //group status codes
         ) {
           setMessages(response.data.data);
         } else {
@@ -182,6 +185,7 @@ const MessagesTabContent = ({
           err instanceof Error ? err.message : "Failed to load messages.";
         setError(errorMsg);
         setMessages([]);
+        //error handling
       } finally {
         setLoadingMessages(false);
       }
@@ -202,6 +206,7 @@ const MessagesTabContent = ({
         response.status < 300 &&
         response.data.data
       ) {
+        //code above similar to fetch, however now we add on to our messages
         setMessages((prevMessages) => [...prevMessages, response.data.data!]);
       } else {
         console.warn(
@@ -216,11 +221,12 @@ const MessagesTabContent = ({
       const errorMsg =
         err instanceof Error ? err.message : "Failed to send message.";
       setError(errorMsg);
+      //error handling for message send failurs
     }
   };
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
-
+  //first big chunk of code is scrollable chat sessions
   return (
     <div className="flex gap-4 h-[60vh]">
       <div className="w-1/3 border-r pr-4 flex flex-col">
@@ -251,7 +257,7 @@ const MessagesTabContent = ({
           </ul>
         </ScrollArea>
       </div>
-
+      {/* message code chunk */}
       <div className="w-2/3 flex flex-col">
         {selectedSessionId ? (
           <>
@@ -305,12 +311,14 @@ const MessagesTabContent = ({
           <div className="flex items-center justify-center h-full text-gray-500">
             Select a conversation to view messages.
           </div>
+          //input messaging code above
         )}
       </div>
     </div>
   );
 };
 
+//last status tab code
 const StatusTabContent = ({ listingId }: { listingId: string }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,13 +336,14 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
     setBookingImages({});
     try {
       const bookingResponse = await getBookingsByStorageLocationId(listingId);
+      //grabbing listing ids
       if (
         bookingResponse.status >= 200 &&
         bookingResponse.status < 300 &&
         bookingResponse.data.data
       ) {
         setBookings(bookingResponse.data.data);
-
+        //grabbing image
         const imageFetchPromises = bookingResponse.data.data.map((booking) =>
           getImagesByBookingId(booking.id)
             .then((res) => ({
@@ -371,6 +380,7 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
     } finally {
       setLoading(false);
     }
+    //error handling
   };
 
   useEffect(() => {
@@ -382,6 +392,7 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
     bookingId: string
   ) => {
     const toastId = toast.loading("Associating image with booking...");
+    //confirmations for image uploads 
     try {
       const response = await uploadDropoffImage(imageUrl, bookingId);
       if (response.status >= 200 && response.status < 300) {
@@ -412,6 +423,7 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
   const handleConfirmDropOff = async (bookingId: string) => {
     setConfirmingBookingId(bookingId);
     const toastId = toast.loading("Confirming booking and sending invoice...");
+    //similar to above, confirmations for booking
     try {
       const response = await confirmBooking(bookingId);
       if (
@@ -434,6 +446,7 @@ const StatusTabContent = ({ listingId }: { listingId: string }) => {
   };
 
   return (
+    //code for booking statuses and image uploads by lender
     <div className="space-y-4">
       <h4 className="font-semibold text-lg mb-2">Booking Status</h4>
       {loading && <p>Loading status...</p>}
@@ -608,6 +621,7 @@ export const LenderDisplay: React.FC<LenderDisplayProps> = ({
   }
 
   return (
+    //last chunk here is ui code for the view overall
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="details">Details</TabsTrigger>
