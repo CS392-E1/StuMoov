@@ -1,7 +1,12 @@
+/**
+ * PaymentDao.cs
+ * 
+ * Handles data access operations for Payment entities including retrieval,
+ * creation, update, and deletion. Uses Entity Framework Core for database interactions.
+ */
+
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using StuMoov.Db;
@@ -12,59 +17,93 @@ namespace StuMoov.Dao
     public class PaymentDao
     {
         [Required]
-        private readonly AppDbContext _dbContext;
+        private readonly AppDbContext _dbContext;  // EF Core database context for payments
 
+        /// <summary>
+        /// Initialize the PaymentDao with the required AppDbContext dependency.
+        /// </summary>
+        /// <param name="dbContext">EF Core database context for payment operations</param>
         public PaymentDao(AppDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        // Get Payment by ID
+        /// <summary>
+        /// Retrieves a payment by its unique identifier.
+        /// </summary>
+        /// <param name="id">The GUID of the payment</param>
+        /// <returns>The Payment entity if found; otherwise null</returns>
         public async Task<Payment?> GetByIdAsync(Guid id)
         {
             return await _dbContext.Payments
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        // Get Payment by Booking ID
+        /// <summary>
+        /// Retrieves a payment associated with a specific booking.
+        /// </summary>
+        /// <param name="bookingId">The GUID of the booking</param>
+        /// <returns>The Payment entity if found; otherwise null</returns>
         public async Task<Payment?> GetByBookingIdAsync(Guid bookingId)
         {
             return await _dbContext.Payments
                 .FirstOrDefaultAsync(p => p.BookingId == bookingId);
         }
 
-        // Get Payment by Stripe Invoice ID
+        /// <summary>
+        /// Retrieves a payment by its Stripe invoice identifier.
+        /// </summary>
+        /// <param name="stripeInvoiceId">The Stripe invoice ID</param>
+        /// <returns>The Payment entity if found; otherwise null</returns>
         public async Task<Payment?> GetByStripeInvoiceIdAsync(string stripeInvoiceId)
         {
             return await _dbContext.Payments
                 .FirstOrDefaultAsync(p => p.StripeInvoiceId == stripeInvoiceId);
         }
 
-        // Add new Payment
+        /// <summary>
+        /// Adds a new payment record if none exists for the given booking.
+        /// </summary>
+        /// <param name="payment">The Payment entity to add</param>
+        /// <returns>The saved Payment with generated fields populated, or null if invalid or duplicate</returns>
         public async Task<Payment?> AddAsync(Payment payment)
         {
             if (payment == null)
             {
-                return null;
+                return null;  // Guard clause for null input
             }
 
-            // Check if a payment already exists for this booking
-            Payment? existingPayment = await GetByBookingIdAsync(payment.BookingId);
-            if (existingPayment != null)
+            // Prevent duplicate payment for the same booking
+            var existing = await GetByBookingIdAsync(payment.BookingId);
+            if (existing != null)
             {
                 return null;
             }
 
             await _dbContext.Payments.AddAsync(payment);
             await _dbContext.SaveChangesAsync();
-
             return payment;
         }
 
-        // Update Payment details 
-        public async Task<Payment?> UpdatePaymentWithInvoiceDetailsAsync(Guid paymentId, string stripeInvoiceId, PaymentStatus status, decimal amountCharged, decimal platformFee, decimal amountTransferred)
+        /// <summary>
+        /// Updates payment details with Stripe invoice information.
+        /// </summary>
+        /// <param name="paymentId">The GUID of the payment to update</param>
+        /// <param name="stripeInvoiceId">The Stripe invoice ID</param>
+        /// <param name="status">The new payment status</param>
+        /// <param name="amountCharged">Total amount charged</param>
+        /// <param name="platformFee">Platform fee amount</param>
+        /// <param name="amountTransferred">Amount transferred to the lender</param>
+        /// <returns>The updated Payment entity if found; otherwise null</returns>
+        public async Task<Payment?> UpdatePaymentWithInvoiceDetailsAsync(
+            Guid paymentId,
+            string stripeInvoiceId,
+            PaymentStatus status,
+            decimal amountCharged,
+            decimal platformFee,
+            decimal amountTransferred)
         {
-            Payment? payment = await GetByIdAsync(paymentId);
+            var payment = await GetByIdAsync(paymentId);
             if (payment == null)
             {
                 return null;
@@ -72,14 +111,18 @@ namespace StuMoov.Dao
 
             payment.UpdateWithInvoiceDetails(stripeInvoiceId, status, amountCharged, platformFee, amountTransferred);
             await _dbContext.SaveChangesAsync();
-
             return payment;
         }
 
-        // Update Payment status
+        /// <summary>
+        /// Updates only the status of an existing payment.
+        /// </summary>
+        /// <param name="paymentId">The GUID of the payment to update</param>
+        /// <param name="newStatus">The new payment status</param>
+        /// <returns>The updated Payment entity if found; otherwise null</returns>
         public async Task<Payment?> UpdatePaymentStatusAsync(Guid paymentId, PaymentStatus newStatus)
         {
-            Payment? payment = await GetByIdAsync(paymentId);
+            var payment = await GetByIdAsync(paymentId);
             if (payment == null)
             {
                 return null;
@@ -87,10 +130,14 @@ namespace StuMoov.Dao
 
             payment.UpdateStatus(newStatus);
             await _dbContext.SaveChangesAsync();
-
             return payment;
         }
 
+        /// <summary>
+        /// Updates all editable fields of an existing payment.
+        /// </summary>
+        /// <param name="payment">Payment model containing updated values</param>
+        /// <returns>The updated Payment entity if found; otherwise null</returns>
         public async Task<Payment?> UpdateAsync(Payment payment)
         {
             if (payment == null)
@@ -98,22 +145,25 @@ namespace StuMoov.Dao
                 return null;
             }
 
-            Payment? existingPayment = await _dbContext.Payments.FindAsync(payment.Id);
-            if (existingPayment == null)
+            var existing = await _dbContext.Payments.FindAsync(payment.Id);
+            if (existing == null)
             {
                 return null;
             }
 
-            _dbContext.Entry(existingPayment).CurrentValues.SetValues(payment);
+            _dbContext.Entry(existing).CurrentValues.SetValues(payment);
             await _dbContext.SaveChangesAsync();
-
             return payment;
         }
 
-        // Delete Payment
+        /// <summary>
+        /// Deletes a payment by its unique identifier.
+        /// </summary>
+        /// <param name="id">The GUID of the payment to delete</param>
+        /// <returns>True if deletion succeeded; otherwise false</returns>
         public async Task<bool> DeleteAsync(Guid id)
         {
-            Payment? payment = await _dbContext.Payments.FindAsync(id);
+            var payment = await _dbContext.Payments.FindAsync(id);
             if (payment == null)
             {
                 return false;
@@ -121,7 +171,6 @@ namespace StuMoov.Dao
 
             _dbContext.Payments.Remove(payment);
             await _dbContext.SaveChangesAsync();
-
             return true;
         }
     }
