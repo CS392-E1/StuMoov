@@ -1,21 +1,34 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿/**
+ * AppDbContext.cs
+ *
+ * Defines the Entity Framework Core database context for the StuMoov application,
+ * including DbSet properties for each entity and model configuration in OnModelCreating.
+ */
+
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StuMoov.Models.UserModel;
 using StuMoov.Models.ChatModel;
 using StuMoov.Models.BookingModel;
 using StuMoov.Models.StorageLocationModel;
 using StuMoov.Models.PaymentModel;
 using StuMoov.Models.UserModel.Enums;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StuMoov.Models.ImageModel;
 
 namespace StuMoov.Db
 {
     public class AppDbContext : DbContext
     {
+        /// <summary>
+        /// Creates a new instance of AppDbContext with the provided options.
+        /// </summary>
+        /// <param name="options">Configuration options for the context</param>
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         { }
 
+        // DbSets for application entities
         public DbSet<User> Users { get; set; }
         public DbSet<Renter> Renters { get; set; }
         public DbSet<Lender> Lenders { get; set; }
@@ -28,15 +41,22 @@ namespace StuMoov.Db
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Image> Images { get; set; }
 
+        /// <summary>
+        /// Configures the EF Core model, including table mappings, relationships,
+        /// inheritance, and enum conversions.
+        /// </summary>
+        /// <param name="modelBuilder">The builder being used to construct the model</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            // Ignore Supabase client options type
             modelBuilder.Ignore<Supabase.Postgrest.ClientOptions>();
 
+            // Value converter for UserRole enum
             var userRoleConverter = new ValueConverter<UserRole, string>(
-                v => v.ToString(),        // Convert enum to string when saving
-                v => (UserRole)Enum.Parse(typeof(UserRole), v)  // Convert string to enum when reading
+                v => v.ToString(),
+                v => (UserRole)Enum.Parse(typeof(UserRole), v)
             );
 
             // Apply the converter to the Role property
@@ -44,13 +64,13 @@ namespace StuMoov.Db
                 .Property(u => u.Role)
                 .HasConversion(userRoleConverter);
 
-            // Configure TPH inheritance
+            // Configure Table-per-Hierarchy (TPH) inheritance for User
             modelBuilder.Entity<User>()
                 .HasDiscriminator<UserRole>("Role")
                 .HasValue<Renter>(UserRole.RENTER)
                 .HasValue<Lender>(UserRole.LENDER);
 
-            // Configure primary keys
+            // Configure primary keys for all entities
             modelBuilder.Entity<User>().HasKey(u => u.Id);
             modelBuilder.Entity<StripeCustomer>().HasKey(sc => sc.Id);
             modelBuilder.Entity<StripeConnectAccount>().HasKey(sca => sca.Id);
@@ -59,10 +79,9 @@ namespace StuMoov.Db
             modelBuilder.Entity<Booking>().HasKey(b => b.Id);
             modelBuilder.Entity<StorageLocation>().HasKey(sl => sl.Id);
             modelBuilder.Entity<Payment>().HasKey(p => p.Id);
-            modelBuilder.Entity<Image>().HasKey(I => I.Id);
+            modelBuilder.Entity<Image>().HasKey(i => i.Id);
 
-            // Configure relationships
-            // StripeCustomer -> User
+            // Configure relationships and cascade behaviors
             modelBuilder.Entity<StripeCustomer>()
                 .HasOne(sc => sc.User)
                 .WithOne()
@@ -154,7 +173,7 @@ namespace StuMoov.Db
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure enum conversions
+            // Configure enum-to-string conversions for BookingStatus, StripeConnectAccountStatus, and PaymentStatus
             modelBuilder.Entity<Booking>()
                 .Property(b => b.Status)
                 .HasConversion<string>();

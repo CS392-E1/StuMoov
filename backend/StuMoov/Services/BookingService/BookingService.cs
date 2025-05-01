@@ -1,4 +1,13 @@
-﻿using System;
+﻿/**
+ * BookingService.cs
+ *
+ * Manages booking-related operations for the StuMoov application.
+ * Provides functionality for creating, retrieving, updating, confirming, and canceling bookings,
+ * as well as handling associated payment records and Stripe invoice creation.
+ * Integrates with DAOs for data access, Stripe services for payments, and logging for diagnostics.
+ */
+
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,17 +24,52 @@ using StuMoov.Models.UserModel;
 
 namespace StuMoov.Services.BookingService
 {
+    /// <summary>
+    /// Service responsible for managing booking operations, including creation, retrieval, updates, and cancellations.
+    /// Handles payment record creation and Stripe invoice processing for confirmed bookings.
+    /// </summary>
     public class BookingService
     {
+        /// <summary>
+        /// Data access object for booking-related database operations.
+        /// </summary>
         [Required]
         private readonly BookingDao _bookingDao;
+
+        /// <summary>
+        /// Data access object for payment-related database operations.
+        /// </summary>
         private readonly PaymentDao _paymentDao;
+
+        /// <summary>
+        /// Data access object for user-related database operations.
+        /// </summary>
         private readonly UserDao _userDao;
+
+        /// <summary>
+        /// Stripe service for handling payment and invoice operations.
+        /// </summary>
         private readonly StuMoov.Services.StripeService.StripeService _stripeService;
+
+        /// <summary>
+        /// Configuration for accessing application settings, such as Stripe fees.
+        /// </summary>
         private readonly IConfiguration _configuration;
+
+        /// <summary>
+        /// Logger for recording booking-related events and errors.
+        /// </summary>
         private readonly ILogger<BookingService> _logger;
 
-        // Constructor with dependency injection
+        /// <summary>
+        /// Initializes a new instance of the BookingService with required dependencies.
+        /// </summary>
+        /// <param name="bookingDao">DAO for booking operations.</param>
+        /// <param name="paymentDao">DAO for payment operations.</param>
+        /// <param name="userDao">DAO for user operations.</param>
+        /// <param name="stripeService">Service for Stripe payment processing.</param>
+        /// <param name="configuration">Application configuration.</param>
+        /// <param name="logger">Logger for diagnostics.</param>
         public BookingService(
             BookingDao bookingDao,
             PaymentDao paymentDao,
@@ -42,6 +86,14 @@ namespace StuMoov.Services.BookingService
             _logger = logger;
         }
 
+        /// <summary>
+        /// Creates a new booking for a storage location by a renter.
+        /// Validates inputs, checks availability, creates a payment record, and links it to the booking.
+        /// </summary>
+        /// <param name="request">The booking creation request with details like dates and price.</param>
+        /// <param name="renter">The renter making the booking.</param>
+        /// <param name="storageLocation">The storage location being booked.</param>
+        /// <returns>A Response object with the status, message, and created booking.</returns>
         public async Task<Response> CreateBookingAsync(CreateBookingRequest request, Renter renter, StorageLocation storageLocation)
         {
             try
@@ -99,12 +151,9 @@ namespace StuMoov.Services.BookingService
                     return new Response(StatusCodes.Status500InternalServerError, "An error occurred while creating the booking.", null);
                 }
 
-
                 decimal amountChargedInCents = request.TotalPrice;
                 decimal applicationFeePercent = _configuration.GetValue<decimal>("Stripe:ApplicationFeePercent", 3m); // Default to 3%
-
                 decimal platformFeeInCents = Math.Round(amountChargedInCents * (applicationFeePercent / 100m), 2);
-
                 decimal amountTransferredInCents = amountChargedInCents - platformFeeInCents;
 
                 _logger.LogInformation($"Initial Payment calculation for Booking {createdBooking.Id}: Total={amountChargedInCents}c, Fee={platformFeeInCents}c, Transferred={amountTransferredInCents}c");
@@ -135,7 +184,6 @@ namespace StuMoov.Services.BookingService
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to finalize booking creation.", null);
                 }
 
-
                 _logger.LogInformation($"Booking {createdBooking.Id} and Payment {createdPayment.Id} created successfully.");
                 return new Response(StatusCodes.Status201Created, "Booking created successfully", createdBooking);
             }
@@ -146,7 +194,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get a booking by ID
+        /// <summary>
+        /// Retrieves a booking by its unique identifier.
+        /// </summary>
+        /// <param name="id">The ID of the booking to retrieve.</param>
+        /// <returns>A Response object with the status, message, and booking data.</returns>
         public async Task<Response> GetBookingByIdAsync(Guid id)
         {
             try
@@ -166,7 +218,10 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get all bookings
+        /// <summary>
+        /// Retrieves all bookings from the database.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetAllBookingsAsync()
         {
             try
@@ -180,7 +235,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get bookings by renter ID
+        /// <summary>
+        /// Retrieves all bookings associated with a specific renter.
+        /// </summary>
+        /// <param name="renterId">The ID of the renter.</param>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetBookingsByRenterIdAsync(Guid renterId)
         {
             try
@@ -197,7 +256,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get bookings by storage location ID
+        /// <summary>
+        /// Retrieves all bookings associated with a specific storage location.
+        /// </summary>
+        /// <param name="storageLocationId">The ID of the storage location.</param>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetBookingsByStorageLocationIdAsync(Guid storageLocationId)
         {
             try
@@ -214,7 +277,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get bookings by status
+        /// <summary>
+        /// Retrieves all bookings with a specific status.
+        /// </summary>
+        /// <param name="status">The booking status to filter by.</param>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetBookingsByStatusAsync(BookingStatus status)
         {
             try
@@ -228,7 +295,12 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Confirm a booking and trigger invoice creation
+        /// <summary>
+        /// Confirms a booking and initiates Stripe invoice creation.
+        /// Updates the booking status to CONFIRMED and triggers payment processing.
+        /// </summary>
+        /// <param name="id">The ID of the booking to confirm.</param>
+        /// <returns>A Response object with the status, message, and updated booking.</returns>
         public async Task<Response> ConfirmBookingAsync(Guid id)
         {
             _logger.LogInformation($"Attempting to confirm Booking ID: {id}");
@@ -265,7 +337,6 @@ namespace StuMoov.Services.BookingService
 
                 // 1: Update local booking status first
                 bool statusUpdated = await _bookingDao.UpdateStatusAsync(id, BookingStatus.CONFIRMED);
-
                 if (!statusUpdated)
                 {
                     _logger.LogError($"Failed to update status to CONFIRMED for booking {id}.");
@@ -276,12 +347,10 @@ namespace StuMoov.Services.BookingService
                 // 2: Trigger Stripe Invoice Creation
                 _logger.LogInformation($"Calling StripeService to create invoice for booking {id}.");
                 Payment? updatedPayment = await _stripeService.CreateAndSendInvoiceForBookingAsync(id);
-
                 if (updatedPayment == null)
                 {
                     // If we got here, then the booking was confirmed locally, but the invoice creation failed.
                     // We could manually send the invoice on Stripe Dashboard, or we could create a trigger to do this.
-                    // TODO: Think about a solution for this.
                     _logger.LogError($"Stripe invoice creation failed for confirmed booking {id}. The booking remains confirmed, but the invoice needs attention.");
                 }
                 else
@@ -289,7 +358,7 @@ namespace StuMoov.Services.BookingService
                     _logger.LogInformation($"Stripe invoice creation initiated successfully for booking {id}. Payment record {updatedPayment.Id} updated.");
                 }
 
-                // Get the updated booking to return
+                // Get the updated booking
                 var confirmedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking confirmed successfully. Invoice process initiated.", confirmedBooking);
             }
@@ -300,7 +369,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Cancel a booking
+        /// <summary>
+        /// Cancels a booking by updating its status to CANCELLED.
+        /// </summary>
+        /// <param name="id">The ID of the booking to cancel.</param>
+        /// <returns>A Response object with the status, message, and updated booking.</returns>
         public async Task<Response> CancelBookingAsync(Guid id)
         {
             try
@@ -328,7 +401,15 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Update booking
+        /// <summary>
+        /// Updates an existing booking with new dates and price.
+        /// Validates for conflicts with other bookings and ensures the booking is not cancelled.
+        /// </summary>
+        /// <param name="id">The ID of the booking to update.</param>
+        /// <param name="startDate">The new start date for the booking.</param>
+        /// <param name="endDate">The new end date for the booking.</param>
+        /// <param name="totalPrice">The new total price for the booking.</param>
+        /// <returns>A Response object with the status, message, and updated booking.</returns>
         public async Task<Response> UpdateBookingAsync(Guid id, DateTime startDate, DateTime endDate, decimal totalPrice)
         {
             try
@@ -349,7 +430,7 @@ namespace StuMoov.Services.BookingService
                 if (existingBooking.Status == BookingStatus.CANCELLED)
                     return new Response(StatusCodes.Status400BadRequest, "Cannot update a cancelled booking", null);
 
-                // Check if new dates overlap with existing bookings (excluding the current booking)
+                // Check for conflicts with other bookings
                 var storageLocationId = existingBooking.StorageLocationId;
                 var overlappingBookings = (await _bookingDao.GetByStorageLocationIdAsync(storageLocationId))
                     .Where(b => b.Id != id && b.Status != BookingStatus.CANCELLED)
@@ -362,17 +443,17 @@ namespace StuMoov.Services.BookingService
                 if (overlappingBookings.Any())
                     return new Response(StatusCodes.Status409Conflict, "The requested dates conflict with existing bookings", null);
 
-                // Update the existing booking object with new values
+                // Update booking details
                 existingBooking.StartDate = startDate;
                 existingBooking.EndDate = endDate;
                 existingBooking.TotalPrice = totalPrice;
-                existingBooking.UpdatedAt = DateTime.UtcNow; // Update the timestamp
+                existingBooking.UpdatedAt = DateTime.UtcNow;
 
                 // Update the booking using the modified object
                 if (!await _bookingDao.UpdateAsync(existingBooking))
                     return new Response(StatusCodes.Status500InternalServerError, "Failed to update booking", null);
 
-                // Get the updated booking (optional, could return existingBooking if UpdateAsync modifies it in place)
+                // Get the updated booking
                 var updatedBooking = await _bookingDao.GetByIdAsync(id);
                 return new Response(StatusCodes.Status200OK, "Booking updated successfully", updatedBooking);
             }
@@ -382,7 +463,10 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get active bookings
+        /// <summary>
+        /// Retrieves all active bookings (not cancelled or expired).
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of active bookings.</returns>
         public async Task<Response> GetActiveBookingsAsync()
         {
             try
@@ -396,7 +480,12 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get bookings for a date range
+        /// <summary>
+        /// Retrieves bookings within a specified date range.
+        /// </summary>
+        /// <param name="startDate">The start of the date range.</param>
+        /// <param name="endDate">The end of the date range.</param>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetBookingsForDateRangeAsync(DateTime startDate, DateTime endDate)
         {
             try
@@ -413,7 +502,13 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Check if a storage location is available for a date range
+        /// <summary>
+        /// Checks if a storage location is available for a specified date range.
+        /// </summary>
+        /// <param name="storageLocationId">The ID of the storage location.</param>
+        /// <param name="startDate">The start of the date range.</param>
+        /// <param name="endDate">The end of the date range.</param>
+        /// <returns>A Response object with the status, message, and availability status.</returns>
         public async Task<Response> IsStorageLocationAvailableAsync(Guid storageLocationId, DateTime startDate, DateTime endDate)
         {
             try
@@ -437,7 +532,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Calculate booking duration in days
+        /// <summary>
+        /// Calculates the duration of a booking in days.
+        /// </summary>
+        /// <param name="id">The ID of the booking.</param>
+        /// <returns>A Response object with the status, message, and duration in days.</returns>
         public async Task<Response> CalculateBookingDurationAsync(Guid id)
         {
             try
@@ -458,7 +557,10 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get all upcoming bookings (start date in the future)
+        /// <summary>
+        /// Retrieves all upcoming bookings with a start date in the future.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of upcoming bookings.</returns>
         public async Task<Response> GetUpcomingBookingsAsync()
         {
             try
@@ -477,7 +579,10 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get current bookings (between start and end date)
+        /// <summary>
+        /// Retrieves all current bookings that are active within the current date.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of current bookings.</returns>
         public async Task<Response> GetCurrentBookingsAsync()
         {
             try
@@ -496,7 +601,10 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get expired bookings (end date in the past)
+        /// <summary>
+        /// Retrieves all expired bookings with an end date in the past.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of expired bookings.</returns>
         public async Task<Response> GetExpiredBookingsAsync()
         {
             try
@@ -515,7 +623,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Get bookings that start within a specific number of days
+        /// <summary>
+        /// Retrieves bookings starting within a specified number of days from the current date.
+        /// </summary>
+        /// <param name="days">The number of days to look ahead.</param>
+        /// <returns>A Response object with the status, message, and list of bookings.</returns>
         public async Task<Response> GetBookingsStartingWithinDaysAsync(int days)
         {
             try
@@ -539,7 +651,11 @@ namespace StuMoov.Services.BookingService
             }
         }
 
-        // Helper method to validate booking
+        /// <summary>
+        /// Validates a booking's properties to ensure they meet requirements.
+        /// </summary>
+        /// <param name="booking">The booking to validate.</param>
+        /// <returns>A Response object indicating the validation result.</returns>
         private Response ValidateBooking(Booking booking)
         {
             if (booking.RenterId == Guid.Empty)

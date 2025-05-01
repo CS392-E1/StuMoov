@@ -1,38 +1,61 @@
+/**
+ * StorageLocationService.cs
+ *
+ * Manages operations related to storage locations in the StuMoov application.
+ * Provides functionality to retrieve, create, update, delete, and query storage locations
+ * based on various criteria such as location, dimensions, capacity, and price.
+ * Integrates with the StorageLocationDao for data access.
+ */
+
 using System.ComponentModel.DataAnnotations;
-using StuMoov.Dao; // Import Data Access Object (DAO) layer for accessing storage location data
+using StuMoov.Dao;
 using StuMoov.Models;
-using StuMoov.Models.StorageLocationModel; // Import the response model for API responses
+using StuMoov.Models.StorageLocationModel;
 
 namespace StuMoov.Services.StorageLocationService
 {
-    // Service class responsible for retrieving storage location data
+    /// <summary>
+    /// Service responsible for managing storage location operations, including retrieval,
+    /// creation, updates, deletion, and advanced querying based on location and attributes.
+    /// </summary>
     public class StorageLocationService
     {
+        /// <summary>
+        /// Data access object for storage location-related database operations.
+        /// </summary>
         [Required]
-        private readonly StorageLocationDao _storageLocationDao; // DAO instance for data retrieval
+        private readonly StorageLocationDao _storageLocationDao;
 
-        // Constructor to inject StorageLocationDao dependency
+        /// <summary>
+        /// Initializes a new instance of the StorageLocationService with the required dependency.
+        /// </summary>
+        /// <param name="storageLocationDao">DAO for storage location operations.</param>
         public StorageLocationService(StorageLocationDao storageLocationDao)
         {
             this._storageLocationDao = storageLocationDao;
         }
 
-        // Method to retrieve all storage locations and return a structured response
+        /// <summary>
+        /// Retrieves all storage locations from the database.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of storage locations.</returns>
         public async Task<Response> GetAllLocationsAsync()
         {
             // Fetch the list of storage locations from the DAO
             List<StorageLocation> locations = await this._storageLocationDao.GetAllAsync();
-
             // Return a structured response with status code, message, and retrieved data
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
-        // Method to retrieve a storage location by its ID
+        /// <summary>
+        /// Retrieves a storage location by its unique identifier.
+        /// </summary>
+        /// <param name="id">The ID of the storage location.</param>
+        /// <returns>A Response object with the status, message, and storage location data.</returns>
         public async Task<Response> GetLocationByIdAsync(Guid id)
         {
             // Fetch the storage location from the DAO
             StorageLocation? location = await this._storageLocationDao.GetByIdAsync(id);
-
             // Return appropriate response based on whether the location was found
             if (location == null)
             {
@@ -50,7 +73,11 @@ namespace StuMoov.Services.StorageLocationService
             );
         }
 
-        // Method to retrieve storage locations by lender ID
+        /// <summary>
+        /// Retrieves all storage locations associated with a specific lender.
+        /// </summary>
+        /// <param name="lenderId">The ID of the lender.</param>
+        /// <returns>A Response object with the status, message, and list of storage locations.</returns>
         public async Task<Response> GetLocationsByUserIdAsync(Guid lenderId)
         {
             // Fetch locations by user ID from the DAO
@@ -69,7 +96,11 @@ namespace StuMoov.Services.StorageLocationService
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
-        // Method to create a new storage location
+        /// <summary>
+        /// Creates a new storage location in the database.
+        /// </summary>
+        /// <param name="storageLocation">The storage location data to create.</param>
+        /// <returns>A Response object with the status, message, and created storage location.</returns>
         public async Task<Response> CreateLocationAsync(StorageLocation storageLocation)
         {
             // Validate the storageLocation object
@@ -94,7 +125,12 @@ namespace StuMoov.Services.StorageLocationService
             );
         }
 
-        // Method to update an existing storage location
+        /// <summary>
+        /// Updates an existing storage location with new data.
+        /// </summary>
+        /// <param name="id">The ID of the storage location to update.</param>
+        /// <param name="updatedStorageLocation">The updated storage location data.</param>
+        /// <returns>A Response object with the status, message, and updated storage location.</returns>
         public async Task<Response> UpdateLocationAsync(Guid id, StorageLocation updatedStorageLocation)
         {
             // Validate input
@@ -119,10 +155,8 @@ namespace StuMoov.Services.StorageLocationService
 
             // Update the storage location
             bool success = await this._storageLocationDao.UpdateAsync(id, updatedStorageLocation);
-
             if (success)
             {
-                // Return the updated location
                 StorageLocation? location = await this._storageLocationDao.GetByIdAsync(id);
                 return new Response(
                     StatusCodes.Status200OK,
@@ -138,7 +172,11 @@ namespace StuMoov.Services.StorageLocationService
             );
         }
 
-        // Method to delete a storage location
+        /// <summary>
+        /// Deletes a storage location from the database.
+        /// </summary>
+        /// <param name="id">The ID of the storage location to delete.</param>
+        /// <returns>A Response object with the status and message.</returns>
         public async Task<Response> DeleteLocationAsync(Guid id)
         {
             // Check if location exists
@@ -153,7 +191,6 @@ namespace StuMoov.Services.StorageLocationService
 
             // Delete the storage location
             bool success = await this._storageLocationDao.DeleteAsync(id);
-
             if (success)
             {
                 return new Response(
@@ -170,7 +207,13 @@ namespace StuMoov.Services.StorageLocationService
             );
         }
 
-        // Method to find nearby storage locations
+        /// <summary>
+        /// Finds storage locations within a specified radius from a given latitude and longitude.
+        /// </summary>
+        /// <param name="lat">The latitude of the center point.</param>
+        /// <param name="lng">The longitude of the center point.</param>
+        /// <param name="radiusKm">The radius in kilometers to search within.</param>
+        /// <returns>A Response object with the status, message, and list of nearby storage locations.</returns>
         public async Task<Response> FindNearbyLocationsAsync(double lat, double lng, double radiusKm)
         {
             // Validate parameters
@@ -198,12 +241,17 @@ namespace StuMoov.Services.StorageLocationService
             return new Response(StatusCodes.Status200OK, "OK", nearbyLocations);
         }
 
-        // Method to find storage locations based on dimensional requirements
+        /// <summary>
+        /// Finds storage locations that meet specified dimensional requirements.
+        /// </summary>
+        /// <param name="requiredLength">The minimum required length.</param>
+        /// <param name="requiredWidth">The minimum required width.</param>
+        /// <param name="requiredHeight">The minimum required height.</param>
+        /// <returns>A Response object with the status, message, and list of matching storage locations.</returns>
         public async Task<Response> FindLocationsByDimensionsAsync(double requiredLength, double requiredWidth, double requiredHeight)
         {
             // Find locations with sufficient dimensions
             List<StorageLocation> locations = await this._storageLocationDao.FindByDimensionsAsync(requiredLength, requiredWidth, requiredHeight);
-
             if (locations == null || locations.Count == 0)
             {
                 return new Response(
@@ -216,7 +264,11 @@ namespace StuMoov.Services.StorageLocationService
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
-        // Method to find storage locations with sufficient volume capacity
+        /// <summary>
+        /// Finds storage locations with sufficient volume capacity.
+        /// </summary>
+        /// <param name="requiredVolume">The minimum required volume.</param>
+        /// <returns>A Response object with the status, message, and list of matching storage locations.</returns>
         public async Task<Response> FindLocationsWithSufficientCapacityAsync(double requiredVolume)
         {
             // Validate parameters
@@ -231,7 +283,6 @@ namespace StuMoov.Services.StorageLocationService
 
             // Find locations with sufficient capacity
             List<StorageLocation> locations = await this._storageLocationDao.FindWithSufficientCapacityAsync(requiredVolume);
-
             if (locations == null || locations.Count == 0)
             {
                 return new Response(
@@ -244,7 +295,11 @@ namespace StuMoov.Services.StorageLocationService
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
-        // Method to find storage locations with price less than or equal to the specified price
+        /// <summary>
+        /// Finds storage locations with a price less than or equal to the specified amount.
+        /// </summary>
+        /// <param name="price">The maximum price for the storage locations.</param>
+        /// <returns>A Response object with the status, message, and list of matching storage locations.</returns>
         public async Task<Response> FindLocationsByPriceAsync(double price)
         {
             // Validate parameters
@@ -259,7 +314,6 @@ namespace StuMoov.Services.StorageLocationService
 
             // Find locations with price less than or equal to the specified price
             List<StorageLocation> locations = await this._storageLocationDao.FindWithPriceAsync(price);
-
             if (locations == null || locations.Count == 0)
             {
                 return new Response(
@@ -272,13 +326,20 @@ namespace StuMoov.Services.StorageLocationService
             return new Response(StatusCodes.Status200OK, "OK", locations);
         }
 
-        // Method to get the total count of storage locations
+        /// <summary>
+        /// Retrieves the total count of storage locations in the database.
+        /// </summary>
+        /// <returns>The total number of storage locations.</returns>
         public async Task<int> GetLocationCountAsync()
         {
             return await this._storageLocationDao.CountAsync();
         }
 
-        // Method to check if a storage location exists by ID
+        /// <summary>
+        /// Checks if a storage location exists by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the storage location.</param>
+        /// <returns>True if the storage location exists, false otherwise.</returns>
         public async Task<bool> LocationExistsAsync(Guid id)
         {
             return await this._storageLocationDao.ExistsAsync(id);

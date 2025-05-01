@@ -1,3 +1,10 @@
+/**
+ * StripeController.cs
+ * 
+ * Handles Stripe payment integration including Connect accounts for lenders and customer checkout
+ * sessions for renters. Provides endpoints for payment processing and webhook handling.
+ */
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StuMoov.Models;
@@ -19,11 +26,14 @@ namespace StuMoov.Controllers
     [Route("api/[controller]")]
     public class StripeController : ControllerBase
     {
-        private readonly StuMoov.Services.StripeService.StripeService _stripeService;
-        private readonly PaymentDao _paymentDao;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<StripeController> _logger;
+        private readonly StuMoov.Services.StripeService.StripeService _stripeService;  // Service for Stripe operations
+        private readonly PaymentDao _paymentDao;                                       // Data access for payment records
+        private readonly IConfiguration _configuration;                                // Application configuration
+        private readonly ILogger<StripeController> _logger;                           // Logging service
 
+        /// <summary>
+        /// Initialize the StripeController with required services
+        /// </summary>
         public StripeController(
             StuMoov.Services.StripeService.StripeService stripeService,
             PaymentDao paymentDao,
@@ -36,11 +46,16 @@ namespace StuMoov.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Creates a Stripe Connect account for a lender user
+        /// </summary>
+        /// <returns>New Stripe Connect account details</returns>
+        /// <route>POST: api/stripe/connect/accounts</route>
         [HttpPost("connect/accounts")]
         [Authorize(Policy = "LenderOnly")]
         public async Task<IActionResult> CreateConnectAccount()
         {
-            // Get user ID from claims
+            // Extract user ID from claims in the authorization token
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
@@ -56,11 +71,16 @@ namespace StuMoov.Controllers
             return Ok(new Response(200, "Stripe Connect account created", stripeAccount));
         }
 
+        /// <summary>
+        /// Generates an onboarding link for a lender to complete their Stripe Connect account setup
+        /// </summary>
+        /// <returns>URL for the onboarding process</returns>
+        /// <route>GET: api/stripe/connect/accounts/onboarding-link</route>
         [HttpGet("connect/accounts/onboarding-link")]
         [Authorize(Policy = "LenderOnly")]
         public async Task<IActionResult> GetOnboardingLink()
         {
-            // Get user ID from claims
+            // Extract user ID from claims in the authorization token
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
@@ -80,11 +100,16 @@ namespace StuMoov.Controllers
             return Ok(new Response(200, "Onboarding link created", new { url = accountLinkUrl }));
         }
 
+        /// <summary>
+        /// Retrieves the current status of a lender's Stripe Connect account
+        /// </summary>
+        /// <returns>Connect account status information</returns>
+        /// <route>GET: api/stripe/connect/accounts/status</route>
         [HttpGet("connect/accounts/status")]
         [Authorize(Policy = "LenderOnly")]
         public async Task<IActionResult> GetAccountStatus()
         {
-            // Get user ID from claims
+            // Extract user ID from claims in the authorization token
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
@@ -100,11 +125,16 @@ namespace StuMoov.Controllers
             return Ok(new Response(200, "Account status retrieved", account));
         }
 
+        /// <summary>
+        /// Creates a Stripe customer record for a renter user
+        /// </summary>
+        /// <returns>New Stripe customer details</returns>
+        /// <route>POST: api/stripe/customers</route>
         [HttpPost("customers")]
         [Authorize(Policy = "RenterOnly")]
         public async Task<IActionResult> CreateCustomer()
         {
-            // Get user ID from claims
+            // Extract user ID from claims in the authorization token
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
@@ -120,6 +150,12 @@ namespace StuMoov.Controllers
             return Ok(new Response(200, "Stripe customer created", customer));
         }
 
+        /// <summary>
+        /// Creates a checkout session for a renter to make a payment to a lender
+        /// </summary>
+        /// <param name="request">Details for the checkout session including price and connected account</param>
+        /// <returns>Checkout session ID and redirect URL</returns>
+        /// <route>POST: api/stripe/checkout/sessions</route>
         [HttpPost("checkout/sessions")]
         [Authorize(Policy = "RenterOnly")]
         public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
@@ -129,7 +165,7 @@ namespace StuMoov.Controllers
                 return BadRequest(new Response(400, "Invalid request parameters", null));
             }
 
-            // Get user ID from claims
+            // Extract user ID from claims in the authorization token
             string? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
@@ -170,7 +206,11 @@ namespace StuMoov.Controllers
             }
         }
 
-        // I'm currently using the Stripe CLI to test the webhook locally
+        /// <summary>
+        /// Handles Stripe webhook events for payment and account status updates
+        /// </summary>
+        /// <returns>HTTP 200 OK if the webhook was processed successfully</returns>
+        /// <route>POST: api/stripe/webhook</route>
         [HttpPost("webhook")]
         [AllowAnonymous]
         public async Task<IActionResult> HandleWebhook()
@@ -242,7 +282,10 @@ namespace StuMoov.Controllers
             return Ok();
         }
 
-        // Helper methods for webhook event handling
+        /// <summary>
+        /// Processes Stripe Connect account update events from webhooks
+        /// </summary>
+        /// <param name="stripeEvent">The webhook event containing account data</param>
         private async Task HandleAccountUpdatedEvent(Event stripeEvent)
         {
             if (stripeEvent.Data.Object is not Account account) return;
@@ -250,6 +293,10 @@ namespace StuMoov.Controllers
             await _stripeService.UpdateAccountFromWebhookAsync(account);
         }
 
+        /// <summary>
+        /// Processes successful payment intent events from webhooks
+        /// </summary>
+        /// <param name="stripeEvent">The webhook event containing payment intent data</param>
         private Task HandlePaymentIntentSucceededEvent(Event stripeEvent)
         {
             if (stripeEvent.Data.Object is not PaymentIntent paymentIntent) return Task.CompletedTask;
@@ -258,6 +305,10 @@ namespace StuMoov.Controllers
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Processes paid invoice events from webhooks and updates payment records accordingly
+        /// </summary>
+        /// <param name="stripeEvent">The webhook event containing invoice data</param>
         private async Task HandleInvoicePaidAsync(Event stripeEvent)
         {
             if (stripeEvent.Data.Object is not Invoice invoice) return;
@@ -290,6 +341,11 @@ namespace StuMoov.Controllers
             }
         }
 
+        /// <summary>
+        /// Processes failed or uncollectible invoice events from webhooks and updates payment records
+        /// </summary>
+        /// <param name="stripeEvent">The webhook event containing invoice data</param>
+        /// <param name="isUncollectible">Flag indicating if the invoice is marked as uncollectible</param>
         private async Task HandleInvoicePaymentFailedAsync(Event stripeEvent, bool isUncollectible = false)
         {
             if (stripeEvent.Data.Object is not Invoice invoice) return;
@@ -324,6 +380,10 @@ namespace StuMoov.Controllers
             }
         }
 
+        /// <summary>
+        /// Processes voided invoice events from webhooks and updates payment records
+        /// </summary>
+        /// <param name="stripeEvent">The webhook event containing invoice data</param>
         private async Task HandleInvoiceVoidedAsync(Event stripeEvent)
         {
             if (stripeEvent.Data.Object is not Invoice invoice) return;
@@ -356,11 +416,13 @@ namespace StuMoov.Controllers
         }
     }
 
-    // Request models
+    /// <summary>
+    /// Request model for creating a checkout session
+    /// </summary>
     public class CreateCheckoutSessionRequest
     {
-        public string PriceId { get; set; }
-        public string ConnectedAccountId { get; set; }
-        public decimal Amount { get; set; }
+        public string PriceId { get; set; }          // ID of the price object in Stripe
+        public string ConnectedAccountId { get; set; } // ID of the connected account (lender) to receive payment
+        public decimal Amount { get; set; }           // Total amount to charge in smallest currency unit
     }
 }

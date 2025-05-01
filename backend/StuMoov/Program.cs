@@ -1,3 +1,10 @@
+/*
+ * Program.cs
+ * 
+ * Main application entry point and configuration for StuMoov API
+ * Configures services, middleware, authentication, and database connections
+ */
+
 using FirebaseAdmin;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -20,31 +27,47 @@ using StuMoov.Services.ChatService;
 using StuMoov.Service;
 using StuMoov.Services.PaymentService;
 
+// Create web application builder with default configurations
 var builder = WebApplication.CreateBuilder(args);
-var policyName = "google-map-front-end-CORS"; //Policy to allow frontend to access
+var policyName = "google-map-front-end-CORS"; // Policy name to allow frontend access
 
-// Configure Stripe
+// ===================================
+// STRIPE CONFIGURATION
+// ===================================
+// Initialize Stripe with API key from configuration
 var stripeApiKey = builder.Configuration["Stripe:SecretKey"];
 StripeConfiguration.ApiKey = stripeApiKey;
 
+// ===================================
+// SUPABASE CONFIGURATION
+// ===================================
+// Set up Supabase client for realtime features
 var url = builder.Configuration["Supabase:SUPABASE_URL"]!;
 var key = builder.Configuration["Supabase:SUPABASE_KEY"];
 
 var options = new Supabase.SupabaseOptions
 {
-    AutoConnectRealtime = true
+    AutoConnectRealtime = true // Enable automatic WebSocket connections
 };
 
+// Initialize Supabase client asynchronously
 var supabase = new Supabase.Client(url, key, options);
 await supabase.InitializeAsync();
 
+// Get database connection string from configuration
 string connectionString = builder.Configuration["Supabase:CONNECTION_STRING"]!;
 
-// Register the DbContext
+// ===================================
+// DATABASE CONFIGURATION
+// ===================================
+// Register DbContext with Postgres provider
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Add services to the container.
+// ===================================
+// CORS CONFIGURATION
+// ===================================
+// Configure Cross-Origin Resource Sharing policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: policyName,
@@ -53,18 +76,27 @@ builder.Services.AddCors(options =>
             policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials(); // Needed for cookies
+                  .AllowCredentials(); // Required for cookie authentication
         });
 });
 
+// ===================================
+// FIREBASE CONFIGURATION
+// ===================================
+// Initialize Firebase Admin SDK with service account credentials
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromFile("firebase-credentials.json")
 });
 
+// ===================================
+// JWT AUTHENTICATION CONFIGURATION
+// ===================================
+// Get JWT settings from configuration
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var keyBytes = Encoding.UTF8.GetBytes(jwtSection["Key"]!);
 
+// Configure JWT authentication
 builder.Services
     .AddAuthentication(options =>
     {
@@ -73,6 +105,7 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
+        // Configure JWT validation parameters
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -82,15 +115,15 @@ builder.Services
             ValidIssuer = jwtSection["Issuer"],
             ValidAudience = jwtSection["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero // No tolerance for token expiration
         };
 
-        // Support cookies
+        // Add support for cookie-based authentication
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
-                // Try to get the token from the cookie
+                // Extract token from cookie if present
                 if (context.Request.Cookies.TryGetValue("auth_token", out string? token))
                 {
                     context.Token = token;
@@ -100,6 +133,10 @@ builder.Services
         };
     });
 
+// ===================================
+// AUTHORIZATION CONFIGURATION
+// ===================================
+// Configure role-based authorization policies
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("LenderOnly",
@@ -108,12 +145,18 @@ builder.Services.AddAuthorization(options =>
       p => p.RequireClaim(ClaimTypes.Role, "RENTER"));
 });
 
-builder.Services.AddSingleton(supabase);
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<StripeService>();
-builder.Services.AddScoped<ChatSessionService>();
-builder.Services.AddScoped<ChatMessageService>();
+// ===================================
+// SERVICE REGISTRATION
+// ===================================
+// Register shared services
+builder.Services.AddSingleton(supabase); // Register Supabase client as singleton
+builder.Services.AddScoped<AuthService>(); // Authentication service
+builder.Services.AddScoped<StripeService>(); // Stripe payment processing service
+builder.Services.AddScoped<ChatSessionService>(); // Chat session management
+builder.Services.AddScoped<ChatMessageService>(); // Chat message handling
 
+// Register DAO (Data Access Object) services
+// Each DAO is scoped to the HTTP request lifetime
 builder.Services.AddScoped<StorageLocationDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
@@ -148,15 +191,15 @@ builder.Services.AddScoped<ChatSessionDao>(sp =>
     return new ChatSessionDao(context);
 });
 
-// Register PaymentDao
+// Register payment data access service
 builder.Services.AddScoped<PaymentDao>(sp =>
 {
     var context = sp.GetRequiredService<AppDbContext>();
     return new PaymentDao(context);
 });
 
+// Register business logic services
 builder.Services.AddScoped<PaymentService>();
-
 builder.Services.AddScoped<BookingService>();
 
 builder.Services.AddScoped<ChatMessageDao>(sp =>
@@ -171,34 +214,54 @@ builder.Services.AddScoped<ImageDao>(sp =>
     return new ImageDao(context);
 });
 
+// ===================================
+// CONTROLLER CONFIGURATION
+// ===================================
+// Configure API controllers with Newtonsoft JSON settings
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
+        // Prevent circular references in JSON responses
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        // Convert enums to strings in JSON responses
         options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
-        // Optional: use CamelCase
+        // Optional: Use camelCase for property names
         // options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
     });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Add Swagger API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ===================================
+// APPLICATION PIPELINE CONFIGURATION
+// ===================================
+// Build the application
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure middleware pipeline
 if (app.Environment.IsDevelopment())
 {
+    // Enable Swagger UI in development environment only
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Redirect HTTP requests to HTTPS
 app.UseHttpsRedirection();
 
+// Apply CORS policy
 app.UseCors(policyName);
-app.UseJwtCookieMiddleware(); // Add our custom middleware
+
+// Apply custom middleware to handle JWT in cookies
+app.UseJwtCookieMiddleware();
+
+// Enable authentication and authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map controller endpoints
 app.MapControllers();
 
+// Start the application
 app.Run();

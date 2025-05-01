@@ -1,71 +1,114 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using StuMoov.Models;
-using StuMoov.Dao;
-using StuMoov.Models.UserModel;
-using StuMoov.Services.UserService;
+﻿/**
+ * UserController.cs
+ * 
+ * Handles user management functionality including retrieving, creating,
+ * updating, and deleting users. Provides endpoints for user-related operations.
+ */
 
 namespace StuMoov.Controllers
 {
+    using Microsoft.AspNetCore.Mvc;
+    using StuMoov.Models;
+    using StuMoov.Dao;
+    using StuMoov.Models.UserModel;
+    using StuMoov.Services.UserService;
+
     [ApiController]
     [Route("api/user")]
     public class UserController : Controller
     {
-        private readonly UserService _userService;
+        private readonly UserService _userService;  // Service for managing user operations
 
+        /// <summary>
+        /// Initialize the UserController with required dependencies.
+        /// </summary>
+        /// <param name="userDao">Data access object for user operations</param>
         public UserController(UserDao userDao)
         {
             _userService = new UserService(userDao);
         }
 
-        // GET: api/user
+        /// <summary>
+        /// Retrieves all users.
+        /// </summary>
+        /// <returns>List of all users wrapped in a Response object</returns>
+        /// <route>GET: api/user</route>
         [HttpGet]
         public async Task<ActionResult> GetAllUsers()
         {
-            Response response = await _userService.GetAllUsersAsync();
+            var response = await _userService.GetAllUsersAsync();
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/{id}
+        /// <summary>
+        /// Retrieves a user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user</param>
+        /// <returns>User details wrapped in a Response object</returns>
+        /// <route>GET: api/user/{id}</route>
         [HttpGet("{id}")]
         public async Task<ActionResult> GetUserById(Guid id)
         {
-            Response response = await _userService.GetUserByIdAsync(id);
+            var response = await _userService.GetUserByIdAsync(id);
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/username/{username}
+        /// <summary>
+        /// Retrieves a user by their username.
+        /// </summary>
+        /// <param name="username">The username of the user</param>
+        /// <returns>User details wrapped in a Response object</returns>
+        /// <route>GET: api/user/username/{username}</route>
         [HttpGet("username/{username}")]
         public async Task<ActionResult> GetUserByUsername(string username)
         {
-            Response response = await _userService.GetUserByUsernameAsync(username);
+            var response = await _userService.GetUserByUsernameAsync(username);
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/email/{email}
+        /// <summary>
+        /// Retrieves a user by their email address.
+        /// </summary>
+        /// <param name="email">The email address of the user</param>
+        /// <returns>User details wrapped in a Response object</returns>
+        /// <route>GET: api/user/email/{email}</route>
         [HttpGet("email/{email}")]
         public async Task<ActionResult> GetUserByEmail(string email)
         {
-            Response response = await _userService.GetUserByEmailAsync(email);
+            var response = await _userService.GetUserByEmailAsync(email);
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/renters
+        /// <summary>
+        /// Retrieves all renters.
+        /// </summary>
+        /// <returns>List of renter users wrapped in a Response object</returns>
+        /// <route>GET: api/user/renters</route>
         [HttpGet("renters")]
         public async Task<ActionResult> GetAllRenters()
         {
-            Response response = await _userService.GetAllRentersAsync();
+            var response = await _userService.GetAllRentersAsync();
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/lenders
+        /// <summary>
+        /// Retrieves all lenders.
+        /// </summary>
+        /// <returns>List of lender users wrapped in a Response object</returns>
+        /// <route>GET: api/user/lenders</route>
         [HttpGet("lenders")]
         public async Task<ActionResult> GetAllLenders()
         {
-            Response response = await _userService.GetAllLendersAsync();
+            var response = await _userService.GetAllLendersAsync();
             return StatusCode(response.Status, response);
         }
 
-        // POST: api/user/register/renter
+        /// <summary>
+        /// Registers a new renter user.
+        /// </summary>
+        /// <param name="renter">Renter model containing registration data</param>
+        /// <returns>Result of the registration operation</returns>
+        /// <route>POST: api/user/register/renter</route>
         [HttpPost("register/renter")]
         public async Task<ActionResult> RegisterRenter([FromBody] Renter renter)
         {
@@ -74,11 +117,16 @@ namespace StuMoov.Controllers
                 return BadRequest(ModelState);
             }
 
-            Response response = await _userService.RegisterUserAsync(renter);
+            var response = await _userService.RegisterUserAsync(renter);
             return StatusCode(response.Status, response);
         }
 
-        // POST: api/user/register/lender
+        /// <summary>
+        /// Registers a new lender user.
+        /// </summary>
+        /// <param name="lender">Lender model containing registration data</param>
+        /// <returns>Result of the registration operation</returns>
+        /// <route>POST: api/user/register/lender</route>
         [HttpPost("register/lender")]
         public async Task<ActionResult> RegisterLender([FromBody] Lender lender)
         {
@@ -87,11 +135,17 @@ namespace StuMoov.Controllers
                 return BadRequest(ModelState);
             }
 
-            Response response = await _userService.RegisterUserAsync(lender);
+            var response = await _userService.RegisterUserAsync(lender);
             return StatusCode(response.Status, response);
         }
 
-        // PUT: api/user/{id}
+        /// <summary>
+        /// Updates an existing user's information.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user to update</param>
+        /// <param name="user">User model containing updated data</param>
+        /// <returns>Result of the update operation</returns>
+        /// <route>PUT: api/user/{id}</route>
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateUser(Guid id, [FromBody] User user)
         {
@@ -113,39 +167,58 @@ namespace StuMoov.Controllers
                 ));
             }
 
-            Response updateResponse = await _userService.UpdateUserAsync(user);
+            var updateResponse = await _userService.UpdateUserAsync(user);
             return StatusCode(updateResponse.Status, updateResponse);
         }
 
-        // DELETE: api/user/{id}
+        /// <summary>
+        /// Deletes a user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user to delete</param>
+        /// <returns>Result of the delete operation</returns>
+        /// <route>DELETE: api/user/{id}</route>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(Guid id)
         {
-            Response response = await _userService.DeleteUserAsync(id);
+            var response = await _userService.DeleteUserAsync(id);
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/count
+        /// <summary>
+        /// Retrieves the total count of users.
+        /// </summary>
+        /// <returns>User count wrapped in a Response object</returns>
+        /// <route>GET: api/user/count</route>
         [HttpGet("count")]
         public async Task<ActionResult> GetUserCount()
         {
-            Response response = await _userService.GetUserCountAsync();
+            var response = await _userService.GetUserCountAsync();
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/renter/{id}/stripe
+        /// <summary>
+        /// Retrieves renter details along with Stripe payment information.
+        /// </summary>
+        /// <param name="id">The unique identifier of the renter</param>
+        /// <returns>Renter data with Stripe info wrapped in a Response object</returns>
+        /// <route>GET: api/user/renter/{id}/stripe</route>
         [HttpGet("renter/{id}/stripe")]
         public async Task<ActionResult> GetRenterWithStripeInfo(Guid id)
         {
-            Response response = await _userService.GetRenterWithStripeInfoAsync(id);
+            var response = await _userService.GetRenterWithStripeInfoAsync(id);
             return StatusCode(response.Status, response);
         }
 
-        // GET: api/user/exists/{id}
+        /// <summary>
+        /// Checks whether a user exists by their unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user</param>
+        /// <returns>Boolean indicating existence of the user</returns>
+        /// <route>GET: api/user/exists/{id}</route>
         [HttpGet("exists/{id}")]
         public async Task<ActionResult<bool>> UserExists(Guid id)
         {
-            bool exists = await _userService.UserExistsAsync(id);
+            var exists = await _userService.UserExistsAsync(id);
             return Ok(exists);
         }
     }
