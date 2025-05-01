@@ -1,4 +1,13 @@
-﻿using System;
+﻿/**
+ * UserService.cs
+ *
+ * Manages user-related operations for the StuMoov application.
+ * Provides functionality to retrieve, register, update, delete, and query users,
+ * including specific operations for renters and lenders.
+ * Integrates with the UserDao for data access.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
@@ -9,24 +18,42 @@ using StuMoov.Models.UserModel;
 
 namespace StuMoov.Services.UserService
 {
+    /// <summary>
+    /// Service responsible for managing user operations, including retrieval, registration,
+    /// updates, deletion, and specific queries for renters and lenders.
+    /// </summary>
     public class UserService
     {
+        /// <summary>
+        /// Data access object for user-related database operations.
+        /// </summary>
         [Required]
         private readonly UserDao _userDao;
 
+        /// <summary>
+        /// Initializes a new instance of the UserService with the required dependency.
+        /// </summary>
+        /// <param name="userDao">DAO for user operations.</param>
         public UserService(UserDao userDao)
         {
             _userDao = userDao;
         }
 
-        // Get all users
+        /// <summary>
+        /// Retrieves all users from the database.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of users.</returns>
         public async Task<Response> GetAllUsersAsync()
         {
             List<User> users = await _userDao.GetAllUsersAsync();
             return new Response(StatusCodes.Status200OK, "OK", users);
         }
 
-        // Get user by ID
+        /// <summary>
+        /// Retrieves a user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The ID of the user.</param>
+        /// <returns>A Response object with the status, message, and user data, or not found if the user doesn't exist.</returns>
         public async Task<Response> GetUserByIdAsync(Guid id)
         {
             User? user = await _userDao.GetUserByIdAsync(id);
@@ -47,7 +74,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Get user by username
+        /// <summary>
+        /// Retrieves a user by their username.
+        /// </summary>
+        /// <param name="username">The username of the user.</param>
+        /// <returns>A Response object with the status, message, and user data, or not found if the user doesn't exist.</returns>
         public async Task<Response> GetUserByUsernameAsync(string username)
         {
             User? user = await _userDao.GetUserByUsernameAsync(username);
@@ -68,7 +99,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Get user by email
+        /// <summary>
+        /// Retrieves a user by their email address.
+        /// </summary>
+        /// <param name="email">The email address of the user.</param>
+        /// <returns>A Response object with the status, message, and user data, or not found if the user doesn't exist.</returns>
         public async Task<Response> GetUserByEmailAsync(string email)
         {
             User? user = await _userDao.GetUserByEmailAsync(email);
@@ -89,7 +124,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Register a new user
+        /// <summary>
+        /// Registers a new user in the database.
+        /// </summary>
+        /// <param name="user">The user data to register.</param>
+        /// <returns>A Response object with the status, message, and registered user data, or error if registration fails.</returns>
         public async Task<Response> RegisterUserAsync(User user)
         {
             // Check if user is null
@@ -121,7 +160,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Update existing user
+        /// <summary>
+        /// Updates an existing user's information.
+        /// </summary>
+        /// <param name="user">The updated user data.</param>
+        /// <returns>A Response object with the status, message, and updated user data, or error if update fails.</returns>
         public async Task<Response> UpdateUserAsync(User user)
         {
             // Check if user is null
@@ -175,7 +218,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Delete user
+        /// <summary>
+        /// Deletes a user from the database.
+        /// </summary>
+        /// <param name="id">The ID of the user to delete.</param>
+        /// <returns>A Response object with the status and message, or error if deletion fails.</returns>
         public async Task<Response> DeleteUserAsync(Guid id)
         {
             // Check if user exists
@@ -208,21 +255,31 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Get all renters
+        /// <summary>
+        /// Retrieves all users who are renters.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of renters.</returns>
         public async Task<Response> GetAllRentersAsync()
         {
             List<User> renters = await _userDao.GetAllRentersAsync();
             return new Response(StatusCodes.Status200OK, "OK", renters);
         }
 
-        // Get all lenders
+        /// <summary>
+        /// Retrieves all users who are lenders.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and list of lenders.</returns>
         public async Task<Response> GetAllLendersAsync()
         {
             List<User> lenders = await _userDao.GetAllLendersAsync();
             return new Response(StatusCodes.Status200OK, "OK", lenders);
         }
 
-        // Get renter with stripe information
+        /// <summary>
+        /// Retrieves a renter along with their Stripe information.
+        /// </summary>
+        /// <param name="id">The ID of the renter.</param>
+        /// <returns>A Response object with the status, message, and renter data, or not found if the renter doesn't exist.</returns>
         public async Task<Response> GetRenterWithStripeInfoAsync(Guid id)
         {
             Renter? renter = await _userDao.GetRenterWithStripeInfoAsync(id);
@@ -243,7 +300,10 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Get user count
+        /// <summary>
+        /// Retrieves the total count of users in the database.
+        /// </summary>
+        /// <returns>A Response object with the status, message, and user count.</returns>
         public async Task<Response> GetUserCountAsync()
         {
             int count = await _userDao.CountAsync();
@@ -255,7 +315,11 @@ namespace StuMoov.Services.UserService
             );
         }
 
-        // Check if user exists
+        /// <summary>
+        /// Checks if a user exists by their ID.
+        /// </summary>
+        /// <param name="id">The ID of the user.</param>
+        /// <returns>True if the user exists, false otherwise.</returns>
         public async Task<bool> UserExistsAsync(Guid id)
         {
             return await _userDao.ExistsAsync(id);

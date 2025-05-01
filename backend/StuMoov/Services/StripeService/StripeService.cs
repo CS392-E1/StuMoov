@@ -1,3 +1,11 @@
+/**
+ * StripeService.cs
+ *
+ * Manages Stripe-related operations for the StuMoov application.
+ * Provides functionality for creating and managing Stripe Connect accounts, customer accounts,
+ * checkout sessions, and invoices for bookings. Integrates with DAOs for data access and Stripe APIs.
+ */
+
 using Stripe;
 using Stripe.Checkout;
 using System.Threading.Tasks;
@@ -13,16 +21,57 @@ using System.Collections.Generic;
 
 namespace StuMoov.Services.StripeService
 {
+    /// <summary>
+    /// Service responsible for handling Stripe-related operations, including Connect account management,
+    /// customer creation, checkout sessions, and invoice generation for bookings.
+    /// </summary>
     public class StripeService
     {
+        /// <summary>
+        /// Configuration for accessing Stripe API keys and other settings.
+        /// </summary>
         private readonly IConfiguration _configuration;
+
+        /// <summary>
+        /// Data access object for Stripe customer-related database operations.
+        /// </summary>
         private readonly StripeCustomerDao _stripeCustomerDao;
+
+        /// <summary>
+        /// Data access object for Stripe Connect account-related database operations.
+        /// </summary>
         private readonly StripeConnectAccountDao _stripeConnectAccountDao;
+
+        /// <summary>
+        /// Data access object for user-related database operations.
+        /// </summary>
         private readonly UserDao _userDao;
+
+        /// <summary>
+        /// Data access object for payment-related database operations.
+        /// </summary>
         private readonly PaymentDao _paymentDao;
+
+        /// <summary>
+        /// Data access object for booking-related database operations.
+        /// </summary>
         private readonly BookingDao _bookingDao;
+
+        /// <summary>
+        /// Logger for recording Stripe-related events and errors.
+        /// </summary>
         private readonly ILogger<StripeService> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the StripeService with required dependencies and configures Stripe API key.
+        /// </summary>
+        /// <param name="configuration">Application configuration.</param>
+        /// <param name="stripeCustomerDao">DAO for Stripe customer operations.</param>
+        /// <param name="stripeConnectAccountDao">DAO for Stripe Connect account operations.</param>
+        /// <param name="userDao">DAO for user operations.</param>
+        /// <param name="paymentDao">DAO for payment operations.</param>
+        /// <param name="bookingDao">DAO for booking operations.</param>
+        /// <param name="logger">Logger for diagnostics.</param>
         public StripeService(
             IConfiguration configuration,
             StripeCustomerDao stripeCustomerDao,
@@ -43,6 +92,12 @@ namespace StuMoov.Services.StripeService
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
+        /// <summary>
+        /// Creates a Stripe Connect account for a user.
+        /// </summary>
+        /// <param name="email">The email address for the account.</param>
+        /// <param name="userId">The ID of the user in the application.</param>
+        /// <returns>The created Stripe Connect account.</returns>
         public async Task<Account> CreateConnectAccountAsync(string email, string userId)
         {
             AccountCreateOptions options = new AccountCreateOptions
@@ -54,7 +109,7 @@ namespace StuMoov.Services.StripeService
                     CardPayments = new AccountCapabilitiesCardPaymentsOptions
                     {
                         Requested = true,
-                    },
+                },
                     Transfers = new AccountCapabilitiesTransfersOptions
                     {
                         Requested = true,
@@ -71,6 +126,11 @@ namespace StuMoov.Services.StripeService
             return await service.CreateAsync(options);
         }
 
+        /// <summary>
+        /// Creates or retrieves a Stripe Connect account for a lender.
+        /// </summary>
+        /// <param name="lenderId">The ID of the lender.</param>
+        /// <returns>The Stripe Connect account, or null if creation fails.</returns>
         public async Task<StripeConnectAccount?> CreateConnectAccountForLenderAsync(Guid lenderId)
         {
             // Get the lender from the db
@@ -94,6 +154,13 @@ namespace StuMoov.Services.StripeService
             return await _stripeConnectAccountDao.AddAsync(connectAccount);
         }
 
+        /// <summary>
+        /// Creates an account link for onboarding a Stripe Connect account.
+        /// </summary>
+        /// <param name="accountId">The Stripe Connect account ID.</param>
+        /// <param name="refreshUrl">URL to redirect if the link expires.</param>
+        /// <param name="returnUrl">URL to redirect after onboarding.</param>
+        /// <returns>The created account link.</returns>
         public async Task<AccountLink> CreateAccountLinkAsync(string accountId, string refreshUrl, string returnUrl)
         {
             AccountLinkCreateOptions options = new AccountLinkCreateOptions
@@ -108,6 +175,13 @@ namespace StuMoov.Services.StripeService
             return await service.CreateAsync(options);
         }
 
+        /// <summary>
+        /// Creates an onboarding link for a lender's Stripe Connect account.
+        /// </summary>
+        /// <param name="lenderId">The ID of the lender.</param>
+        /// <param name="refreshUrl">URL to redirect if the link expires.</param>
+        /// <param name="returnUrl">URL to redirect after onboarding.</param>
+        /// <returns>The onboarding link URL, or null if creation fails.</returns>
         public async Task<string?> CreateOnboardingLinkForLenderAsync(Guid lenderId, string refreshUrl, string returnUrl)
         {
             // Get the Connect account from the db
@@ -125,12 +199,22 @@ namespace StuMoov.Services.StripeService
             return accountLink.Url;
         }
 
+        /// <summary>
+        /// Retrieves a Stripe Connect account by its ID.
+        /// </summary>
+        /// <param name="accountId">The Stripe Connect account ID.</param>
+        /// <returns>The Stripe Connect account.</returns>
         public async Task<Account> GetAccountAsync(string accountId)
         {
             AccountService service = new AccountService();
             return await service.GetAsync(accountId);
         }
 
+        /// <summary>
+        /// Updates the status of a lender's Stripe Connect account based on its current state.
+        /// </summary>
+        /// <param name="lenderId">The ID of the lender.</param>
+        /// <returns>The updated Stripe Connect account, or null if not found.</returns>
         public async Task<StripeConnectAccount?> UpdateAccountStatusAsync(Guid lenderId)
         {
             StripeConnectAccount? connectAccount = await _stripeConnectAccountDao.GetByUserIdAsync(lenderId);
@@ -146,6 +230,11 @@ namespace StuMoov.Services.StripeService
             return await _stripeConnectAccountDao.UpdateStatusAsync(connectAccount.Id, status, account.PayoutsEnabled == true);
         }
 
+        /// <summary>
+        /// Determines the status of a Stripe Connect account based on its requirements and payout status.
+        /// </summary>
+        /// <param name="account">The Stripe Connect account.</param>
+        /// <returns>The determined account status.</returns>
         private StripeConnectAccountStatus DetermineAccountStatus(Account account)
         {
             // Check if there are any requirements due or past due
@@ -167,6 +256,16 @@ namespace StuMoov.Services.StripeService
             }
         }
 
+        /// <summary>
+        /// Creates a Stripe Checkout session for a payment.
+        /// </summary>
+        /// <param name="customerId">The Stripe customer ID.</param>
+        /// <param name="priceId">The Stripe price ID.</param>
+        /// <param name="successUrl">URL to redirect after successful payment.</param>
+        /// <param name="cancelUrl">URL to redirect if payment is canceled.</param>
+        /// <param name="connectedAccountId">The Stripe Connect account ID.</param>
+        /// <param name="applicationFeeAmount">The application fee amount in cents.</param>
+        /// <returns>The created Stripe Checkout session.</returns>
         public async Task<Stripe.Checkout.Session> CreateCheckoutSessionAsync(
             string customerId,
             string priceId,
@@ -203,6 +302,13 @@ namespace StuMoov.Services.StripeService
             return await service.CreateAsync(options);
         }
 
+        /// <summary>
+        /// Creates a Stripe customer for a user.
+        /// </summary>
+        /// <param name="email">The customer's email address.</param>
+        /// <param name="name">The customer's name.</param>
+        /// <param name="userId">The ID of the user in the application.</param>
+        /// <returns>The created Stripe customer.</returns>
         public async Task<Customer> CreateCustomerAsync(string email, string name, string userId)
         {
             CustomerCreateOptions options = new CustomerCreateOptions
@@ -219,6 +325,11 @@ namespace StuMoov.Services.StripeService
             return await service.CreateAsync(options);
         }
 
+        /// <summary>
+        /// Creates or retrieves a Stripe customer for a renter.
+        /// </summary>
+        /// <param name="renterId">The ID of the renter.</param>
+        /// <returns>The Stripe customer, or null if creation fails.</returns>
         public async Task<StripeCustomer?> CreateCustomerForRenterAsync(Guid renterId)
         {
             // Get the renter from the database
@@ -254,6 +365,11 @@ namespace StuMoov.Services.StripeService
             return null;
         }
 
+        /// <summary>
+        /// Updates a Stripe Connect account's status based on webhook data.
+        /// </summary>
+        /// <param name="account">The Stripe Connect account from the webhook.</param>
+        /// <returns>The updated Stripe Connect account, or null if not found.</returns>
         public async Task<StripeConnectAccount?> UpdateAccountFromWebhookAsync(Account account)
         {
             if (account == null) return null;
@@ -272,6 +388,11 @@ namespace StuMoov.Services.StripeService
                 account.PayoutsEnabled == true);
         }
 
+        /// <summary>
+        /// Creates and sends an invoice for a booking, updating the associated payment record.
+        /// </summary>
+        /// <param name="bookingId">The ID of the booking.</param>
+        /// <returns>The updated payment record, or null if invoice creation fails.</returns>
         public async Task<Payment?> CreateAndSendInvoiceForBookingAsync(Guid bookingId)
         {
             _logger.LogInformation($"Creating invoice for Booking ID: {bookingId}");

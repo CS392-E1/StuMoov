@@ -1,3 +1,12 @@
+/**
+ * AuthService.cs
+ *
+ * Handles user authentication and authorization for the StuMoov application.
+ * Provides methods for user signup and login, integrating with Firebase Authentication
+ * and generating JWT tokens for secure access. Utilizes dependency injection for
+ * data access, configuration, and logging.
+ */
+
 using FirebaseAdmin.Auth;
 using Microsoft.IdentityModel.Tokens;
 using StuMoov.Dao;
@@ -10,12 +19,22 @@ using System.Text;
 
 namespace StuMoov.Services.AuthService
 {
+    /// <summary>
+    /// Service responsible for handling user authentication, including signup and login operations.
+    /// Integrates with Firebase Authentication and generates JWT tokens for secure access.
+    /// </summary>
     public class AuthService
     {
         private readonly UserDao _userDao;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the AuthService with required dependencies.
+        /// </summary>
+        /// <param name="userDao">Data access object for user-related operations.</param>
+        /// <param name="configuration">Configuration for accessing JWT settings.</param>
+        /// <param name="logger">Logger for recording authentication-related events.</param>
         public AuthService(UserDao userDao, IConfiguration configuration, ILogger<AuthService> logger)
         {
             _userDao = userDao;
@@ -23,6 +42,13 @@ namespace StuMoov.Services.AuthService
             _logger = logger;
         }
 
+        /// <summary>
+        /// Registers a new user with the provided Firebase ID token and role.
+        /// Verifies the token, creates a user in the database, and generates a JWT token.
+        /// </summary>
+        /// <param name="idToken">Firebase ID token for authentication.</param>
+        /// <param name="role">The role of the user (Lender or Renter).</param>
+        /// <returns>A Response object containing the status, message, and user data with JWT token.</returns>
         public async Task<Response> SignupAsync(string idToken, UserRole role)
         {
             try
@@ -61,14 +87,13 @@ namespace StuMoov.Services.AuthService
 
                 if (createdUser == null)
                 {
-                    // This try/catch deletes the user from Firebase if the user was not created in the database
+                    // Attempt to delete the user from Firebase if database registration fails
                     try
                     {
                         await FirebaseAuth.DefaultInstance.DeleteUserAsync(uid);
                     }
                     catch (FirebaseAuthException deleteEx)
                     {
-
                         _logger.LogError($"Failed to delete Firebase user {uid} after DB registration failure: {deleteEx.Message}");
                     }
 
@@ -110,6 +135,12 @@ namespace StuMoov.Services.AuthService
             }
         }
 
+        /// <summary>
+        /// Authenticates a user with the provided Firebase ID token.
+        /// Verifies the token, retrieves the user from the database, and generates a JWT token.
+        /// </summary>
+        /// <param name="idToken">Firebase ID token for authentication.</param>
+        /// <returns>A Response object containing the status, message, and user data with JWT token.</returns>
         public async Task<Response> LoginAsync(string idToken)
         {
             try
@@ -173,6 +204,14 @@ namespace StuMoov.Services.AuthService
             }
         }
 
+        /// <summary>
+        /// Generates a JWT token for the authenticated user.
+        /// Includes user ID, email, and role in the token claims.
+        /// </summary>
+        /// <param name="sub">The subject (user ID) for the JWT token.</param>
+        /// <param name="email">The user's email address.</param>
+        /// <param name="role">The user's role (e.g., Lender, Renter).</param>
+        /// <returns>The generated JWT token as a string.</returns>
         public string GenerateJwt(string sub, string email, string role)
         {
             var section = _configuration.GetSection("Jwt");
@@ -205,9 +244,15 @@ namespace StuMoov.Services.AuthService
         }
     }
 
-    // DTO for signup requests
+    /// <summary>
+    /// Data Transfer Object (DTO) for signup requests.
+    /// Specifies the role of the user being registered.
+    /// </summary>
     public class SignupDto
     {
+        /// <summary>
+        /// The role of the user (Lender or Renter).
+        /// </summary>
         public UserRole Role { get; set; }
     }
 }

@@ -1,4 +1,12 @@
-﻿using StuMoov.Models.UserModel.Enums;
+﻿/**
+ * StripeConnectAccount.cs
+ *
+ * Represents the Stripe Connect account details for a lender user.
+ * This model tracks the external Stripe Connect account ID and its association with the lender.
+ * Mapped using Supabase Postgrest attributes and compatible with EF Core.
+ */
+
+using StuMoov.Models.UserModel.Enums;
 using System.ComponentModel.DataAnnotations;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
@@ -10,18 +18,37 @@ namespace StuMoov.Models.UserModel
     // Above is just a note for myself, we will have to implement a customer function to retrieve accounts status
     // This class helps us to manage Stripe connected accounts
     // We will only create entries in this table if the user is a lender (will have lender-specific auth stuff)
+
+    /// <summary>
+    /// Represents a Stripe Connect account associated with a lender user.
+    /// This entity is used to manage Stripe Connect integrations for payouts.
+    /// </summary>
     [Table("stripe_connect_accounts")]
     public class StripeConnectAccount : BaseModel
     {
+        /// <summary>
+        /// The unique identifier for the StripeConnectAccount entity.
+        /// </summary>
         [Key]
         [PrimaryKey("id")]
         public Guid Id { get; private set; }
+
+        /// <summary>
+        /// The ID of the user (lender) linked to this Stripe account.
+        /// </summary>
         [Required]
         [Column("user_id")]
         public Guid UserId { get; private set; }
+
+        /// <summary>
+        /// The lender user associated with this Stripe account.
+        /// </summary>
         [Reference(typeof(Lender), ReferenceAttribute.JoinType.Inner, true, "user_id")]
         public Lender? User { get; private set; } // fk to User table
         [Column("stripe_connect_account_id")]
+        /// <summary>
+        /// The Stripe Connect account ID assigned by Stripe.
+        /// </summary>
         [Required]
         public string StripeConnectAccountId { get; private set; }
         [Column("status")]

@@ -1,19 +1,45 @@
-﻿namespace StuMoov.Models;
+﻿/**
+ * Response.cs
+ *
+ * Defines a standardized response structure for API responses in the StuMoov application.
+ * This model encapsulates the status, message, and data payload for consistent API communication.
+ */
 
-// Represents a standardized response structure for storage location API responses
-public class Response
+namespace StuMoov.Models
 {
-    public int Status { get; set; } // HTTP status code or custom API status code
-
-    public string Message { get; set; } // Message providing additional details about the response
-
-    public object? Data { get; set; } // Payload containing the actual response data (e.g., list of storage locations)
-
-    // Constructor to initialize response properties
-    public Response(int status, string message, object? data)
+    /// <summary>
+    /// Represents a standardized response structure for API responses.
+    /// Used to encapsulate status, message, and data for consistent communication.
+    /// </summary>
+    public class Response
     {
-        Status = status;
-        Message = message;
-        Data = data;
+        /// <summary>
+        /// The HTTP status code or custom API status code indicating the response outcome.
+        /// </summary>
+        public int Status { get; set; }
+
+        /// <summary>
+        /// A message providing additional details or context about the response.
+        /// </summary>
+        public string Message { get; set; }
+
+        /// <summary>
+        /// The payload containing the actual response data, such as a list of storage locations.
+        /// Nullable to accommodate responses without data.
+        /// </summary>
+        public object? Data { get; set; }
+
+        /// <summary>
+        /// Constructs a Response with the specified status, message, and data.
+        /// </summary>
+        /// <param name="status">The HTTP or custom API status code.</paramHealth
+        /// <param name="message">A descriptive message about the response.</param>
+        /// <param name="data">The response data payload, if any.</param>
+        public Response(int status, string message, object? data)
+        {
+            Status = status;
+            Message = message;
+            Data = data;
+        }
     }
 }
