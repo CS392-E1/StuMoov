@@ -1,64 +1,66 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/use-auth";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/hooks/use-auth"; // Custom hook for auth context
+import { auth } from "@/lib/firebase"; // Firebase instance
 import { useState, useEffect } from "react";
-import { getAccountStatus } from "@/lib/api";
-import { StripeConnectAccount, UserRole } from "../types/user";
+import { getAccountStatus } from "@/lib/api"; // API call to fetch Stripe status
+import { StripeConnectAccount, UserRole } from "../types/user"; // Types
 
 export default function Home() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth(); // Access current user and logout function from auth context
   const userRole = user?.role;
-  const navigate = useNavigate();
-  const [stripeStatus, setStripeStatus] = useState<StripeConnectAccount | null>(
-    null
-  );
-  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
-  const [fetchStatusInProgress, setFetchStatusInProgress] = useState(false);
+  const navigate = useNavigate(); // Used to redirect after logout
 
-  // lol this code is so ugly but it was just for testing the stripe connect status
-  // will be removed soon for the homepage re-design
+  // Stripe connection status state (for lenders only)
+  const [stripeStatus, setStripeStatus] = useState<StripeConnectAccount | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false); // UI loading flag
+  const [statusError, setStatusError] = useState<string | null>(null); // Error message if fetch fails
+  const [fetchStatusInProgress, setFetchStatusInProgress] = useState(false); // Prevents multiple calls
+
+  // useEffect hook runs on mount to fetch Stripe status (for LENDERS only)
   useEffect(() => {
     const fetchStatus = async () => {
-      if (fetchStatusInProgress) {
-        return;
-      }
+      // Prevent duplicate fetch calls
+      if (fetchStatusInProgress) return;
 
+      // Only proceed if user is a LENDER
       if (user && user.role === UserRole.LENDER) {
-        setFetchStatusInProgress(true);
-        setIsLoadingStatus(true);
-        setStatusError(null);
-        setStripeStatus(null);
+        setFetchStatusInProgress(true); // Lock fetch
+        setIsLoadingStatus(true); // Show loading indicator
+        setStatusError(null); // Reset previous errors
+        setStripeStatus(null); // Clear old status
+
         try {
-          const response = await getAccountStatus();
+          const response = await getAccountStatus(); // API call to backend
           if (response.data.status === 200 && response.data.data) {
-            setStripeStatus(response.data.data);
+            setStripeStatus(response.data.data); // Save Stripe account info
           } else {
-            setStatusError(
-              response.data.message || "Failed to fetch Stripe status."
-            );
+            // Server responded but without usable data
+            setStatusError(response.data.message || "Failed to fetch Stripe status.");
           }
         } catch (error) {
+          // Network or unexpected error
           console.error("Error fetching Stripe status:", error);
           setStatusError("An error occurred while fetching Stripe status.");
         } finally {
-          setIsLoadingStatus(false);
-          setFetchStatusInProgress(false);
+          setIsLoadingStatus(false); // Done loading
+          setFetchStatusInProgress(false); // Allow new fetches
         }
       } else {
+        // If not a lender, clear all Stripe-related states
         setStripeStatus(null);
         setIsLoadingStatus(false);
         setStatusError(null);
       }
     };
 
-    fetchStatus();
+    fetchStatus(); // Invoke fetch logic once on mount
   }, []);
 
+  // Handles logout and redirects to homepage
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/");
+      navigate("/"); // Redirect to homepage
     } catch (error) {
       console.error("logout error:", error);
     }
@@ -72,19 +74,26 @@ export default function Home() {
             Welcome to StuMoov
           </h1>
 
+          {/* If user is logged in, show account details */}
           {auth.currentUser && (
             <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
               <h2 className="text-xl font-semibold mb-2">Your Account</h2>
+              
+              {/* Email display */}
               <p className="text-gray-600 mb-2">
                 Logged in as:{" "}
                 <span className="font-medium">{auth.currentUser.email}</span>
               </p>
+
+              {/* Role display */}
               <p className="text-gray-600">
                 Account Type:{" "}
                 <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
                   {user ? userRole : "Loading..."}
                 </span>
               </p>
+
+              {/* Stripe status section (only shown for LENDER role) */}
               {user && user.role === UserRole.LENDER && (
                 <div className="mt-2 pt-2 border-t border-gray-200">
                   <p className="text-gray-600">
@@ -113,12 +122,14 @@ export default function Home() {
             </div>
           )}
 
+          {/* CTA Buttons: Always show 'Browse Listings'; show 'Log Out' only if logged in */}
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/listings">
               <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
                 Browse Listings
               </button>
             </Link>
+
             {auth.currentUser && (
               <button
                 onClick={handleLogout}
