@@ -26,6 +26,10 @@ import {
   getImagesByStorageLocationId,
 } from "@/lib/api";
 
+//much of this files code is very similar to LenderDisplay
+
+//imports for react, components, and api calls
+
 type RenterDisplayProps = {
   listing: StorageLocation;
   currentUserId: string | null;
@@ -64,7 +68,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
       setMessages([]);
       return;
     }
-
+    //same fetch logic as lender, grouping 
     const fetchMessages = async () => {
       setLoadingMessages(true);
       setMessagesError(null);
@@ -91,6 +95,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
       } finally {
         setLoadingMessages(false);
       }
+      //grouping status codes for getting messages by session id and also error handling
     };
 
     fetchMessages();
@@ -113,6 +118,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
             currentUserId,
             listing.lenderId,
             listing.id
+            //find session through associated id's and error handling below
           );
           if (response.status === 200 && response.data.data) {
             console.log("Existing session found:", response.data.data.id);
@@ -188,7 +194,6 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     if (listing.id) {
       handleFetchBookings();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing.id]);
 
   const handleSendMessage = async () => {
@@ -207,6 +212,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
           currentUserId,
           listing.lenderId,
           listing.id
+          //creating session for renter sending new message to lender
         );
         if (
           sessionRes.status >= 200 &&
@@ -242,6 +248,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     }
   };
 
+  //Date booking logic for renter
   const isDateBooked = ({ date }: { date: Date }): boolean => {
     const currentDate = DateTime.fromJSDate(date).startOf("day");
     return bookings.some((booking) => {
@@ -283,7 +290,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
       listing.price ?? 0
     );
 
-    // this is so butt ugly but it works
+    //associated fields when renter books
     const newBookingRequest: Omit<
       Booking,
       "id" | "createdAt" | "updatedAt" | "paymentId"
@@ -349,10 +356,11 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
     }
   };
 
+  //paying invoice logic
   const handlePayInvoice = async (paymentId: string) => {
     setPayingInvoiceId(paymentId);
     try {
-      const response = await getInvoiceUrl(paymentId);
+      const response = await getInvoiceUrl(paymentId); //call to api.ts for api function
       if (response.status === 200 && response.data.data) {
         window.open(response.data.data, "_blank");
       } else {
@@ -379,6 +387,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
           response.status === 200 &&
           response.data.data &&
           response.data.data.length > 0
+          //grab listing image for associated storage location, check for successful response from function
         ) {
           setListingImageUrl(response.data.data[0].url);
         } else {
@@ -484,7 +493,7 @@ export const RenterDisplay: React.FC<RenterDisplayProps> = ({
           </div>
         </div>
       </TabsContent>
-
+       {/* Messaging code */}
       <TabsContent value="messages" className="mt-4 flex flex-col h-[60vh]">
         <div className="flex-1 overflow-y-auto border rounded p-4 bg-gray-50">
           {loadingMessages && (

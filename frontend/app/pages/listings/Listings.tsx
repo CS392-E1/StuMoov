@@ -20,7 +20,9 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { Filter } from "@/types/filter";
+//import from components, types, functions for apis, and hooks for geocoding
 
+//Filter related code, setting appropriate fields 
 const FilterPopup = ({
   onClose,
   onApplyFilters,
@@ -48,6 +50,7 @@ const FilterPopup = ({
     onClose();
   };
 
+  //filter frontend
   return (
     <div className="fixed inset-0 z-50 bg-opacity-50 backdrop-blur-sm flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -103,6 +106,7 @@ const FilterPopup = ({
   );
 };
 
+//using components from other files, setting up modals and filter
 export default function Listings() {
   const mapRef = useRef<GoogleMapsRef>(null);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
@@ -122,6 +126,7 @@ export default function Listings() {
   const [filters, setFilters] = useState<Filter>(initialFilterState);
 
   const { geocodeAddress } = useGeocoding();
+  //geocoding for addresses and search functionality
 
   const handleAddLocation = (newLocation: StorageLocation) => {
     setLocations((prevLocations) => [...prevLocations, newLocation]);
@@ -130,6 +135,7 @@ export default function Listings() {
       mapRef.current.setZoom(16);
     }
   };
+  //adding new locations above, centering map to new location
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -145,7 +151,9 @@ export default function Listings() {
           response = await getStorageLocationsByCapacity(filters.volume);
         } else if (filters.price) {
           response = await getStorageLocationsByPrice(filters.price);
+          //if and else if conditions all try fetches based off filter criteria
         } else {
+          //grab all storage locations
           response = await getStorageLocations();
         }
 
@@ -156,6 +164,7 @@ export default function Listings() {
         ) {
           setLocations(response.data.data);
         }
+        //if success, re set locations
       } catch (err) {
         if (
           err instanceof AxiosError &&
@@ -170,6 +179,7 @@ export default function Listings() {
           toast.error("An error occurred while fetching listings.");
         }
       }
+      //error handling
     };
 
     fetchLocations();
@@ -183,7 +193,9 @@ export default function Listings() {
       mapRef.current.setZoom(16);
     }
   };
+  //logic for clicking on listings
 
+  //geocoding at work, converts addresses to coordinates to fetch location for
   const handleSearch = async (query: string) => {
     console.log("Searching for:", query);
 
