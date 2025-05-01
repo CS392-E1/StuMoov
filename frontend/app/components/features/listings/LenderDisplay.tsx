@@ -244,7 +244,7 @@ const MessagesTabContent = ({
                       : ""
                   }`}
                 >
-                  {session.renterId || "Unknown Renter"}
+                  {session.renter?.displayName || "Unknown Renter"}
                 </button>
               </li>
             ))}
@@ -256,7 +256,7 @@ const MessagesTabContent = ({
         {selectedSessionId ? (
           <>
             <h4 className="font-semibold mb-2">
-              Chat with {selectedSession?.renterId || "Renter"}
+              Chat with {selectedSession?.renter?.displayName || "Renter"}
             </h4>
             <ScrollArea className="border rounded p-2 flex-1 mb-2 bg-gray-50 dark:bg-gray-800">
               {loadingMessages && <p>Loading messages...</p>}
